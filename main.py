@@ -1,3 +1,12 @@
-import os
+from Issuer import Issuer
 
-print('Hello APS ProjectWorkGroup42 second try')
+print("\n##########################################################")
+print("\n#  Inizializzazione dell\'Issuer (Università di Rennes)  #")
+print("\n##########################################################")
+# Logica che accredita l'issuer
+issuer = Issuer("Università di Rennes")
+issuer.accredit()
+print("\n##########################################################")
+print("\n#          Issuer accreditato con successo               #")
+print("\n##########################################################")
+print('\n')
