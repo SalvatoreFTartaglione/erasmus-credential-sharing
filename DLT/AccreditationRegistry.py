@@ -27,16 +27,21 @@ class AccreditationRegistry:
             "timestamp": time.time()
         }
 
-        # Registrazione dell'accreditamento sulla blockchain
+        # block data fornisce tutti gli elementi necessari per la registrazione on-chain
+        # del processo di accreditamento
         block_data = {
             "type": "Accreditation",
-            "accrediting_authority": caller_did,
-            "accredited_did": did_str,
-            "did_document": target_did,
-            "entity_type": entity_type,
-            "timestamp": time.time()
+            "accrediting_authority": caller_did,  # Chi ha eseguito l'accreditamento (DID dell'Ente di Accreditamento)
+            "accredited_did": did_str,            # Chi è stato accreditato (DID dell'Issuer/Verifier)
+            "did_document": target_did,           # Il DID Document completo dell'entità accreditata
+            "entity_type": entity_type,           # Il tipo di entità (Issuer o Verifier)
+            "timestamp": time.time()              # Quando è avvenuto l'accreditamento
         }
+        
+        # add data onto the DLT
         self.dlt.add_block(block_data)
+        
+        
         print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
         print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
         return True

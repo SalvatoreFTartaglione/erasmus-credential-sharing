@@ -7,5 +7,5 @@ class AE:
     def getDid(self):
         return self.did
 
-    def giveAccereditation(self, target_did, entity_type):
-        return self.contract.accredit_entity(caller_did=self.did, target_did = target_did, entity_type = entity_type)
+    def giveAccreditation(self, target_did, entity_type):
+        return self.contract.accredit_entity(caller_did = self.did, target_did = target_did, entity_type = entity_type)

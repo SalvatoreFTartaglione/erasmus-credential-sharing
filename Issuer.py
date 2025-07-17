@@ -16,11 +16,13 @@ class Issuer:
         self.did = self.did_manager.generate_did()
         self.public_key = self.did_manager.generate_keys()
         self.did_document = self.did_manager.build_did_document()
-        outcome = self.ae.giveAccereditation(
+        outcome = self.ae.giveAccreditation(
             target_did= self.did_document,
-            entity_type = self.entity_type
+            entity_type = self.entity_type,
         )
         if outcome:
             print(f"Issuer accreditato con did -> {self.did}")
+            return True
         else:
             print('Errore di accreditamento.\nEnte non accreditato.')
+            return False
