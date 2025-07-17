@@ -1,3 +1,4 @@
+from DIDManager import DIDManager
 from DLT.AccreditationRegistry import AccreditationRegistry
 from DLT.CredentialStatusRegistry import CredentialStatusRegistry
 from DLT.DLT import DLT
@@ -15,6 +16,7 @@ def init_actors():
     print("\n#              Inizializzazione del DLT                  #")
     print("\n##########################################################")
     dlt = DLT()
+    did_manager = DIDManager(dlt=dlt)
 
     # Deploy the Accreditation Registry contract
     print("\n##########################################################")
@@ -45,7 +47,7 @@ def init_actors():
     print("\n##########################################################")
 
     # Logica che accredita l'issuer
-    issuer = Issuer("Università di Rennes\n\n", dlt, ae, credential_status_registry)
+    issuer = Issuer("Università di Rennes\n\n", dlt, ae, credential_status_registry, did_manager)
     if issuer.accredit_request():
         print("\n##########################################################")
         print("\n#          Issuer accreditato con successo               #")
@@ -61,7 +63,7 @@ def init_actors():
     print("\n##########################################################")
     print("\n# Inizializzazione dell\'Verifier (Università di Salerno)#")
     print("\n##########################################################")
-    verifier = Verifier("Università di Salerno\n\n", dlt, ae)
+    verifier = Verifier("Università di Salerno\n\n", dlt, ae, did_manager=did_manager)
 
     # Logica che accredita il Verifier
     if verifier.accredit_request():

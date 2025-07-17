@@ -2,25 +2,27 @@ from DIDManager import DIDManager
 
 
 class Issuer:
-    def __init__(self, name, dlt, ae, credential_registry):
+    def __init__(self, name, dlt, ae, credential_registry, did_manager):
         self.name = name
         self.did = None
         self.dlt = dlt
-        self.did_manager = DIDManager(name, dlt, type="Issuer")
+        self.did_manager = did_manager
         self.ae = ae
         self.public_key = None
         self.did_document = None
         self.entity_type = "Issuer"
-        self.isAccredited = False
+        self.is_verified = False
         self.credential_registry = credential_registry
 
     def accredit_request(self):
         print(f"Accreditamento dell\'Issuer {self.name}")
-        self.did = self.did_manager.generate_did()
+        self.did = self.did_manager.generate_did(self.name)
         self.public_key = self.did_manager.generate_keys()
-        self.did_document = self.did_manager.build_did_document()
-        self.isAccredited = self.ae.giveAccreditation(target_did=self.did_document, entity_type=self.entity_type)
-        if self.isAccredited:
+        self.did_document = self.did_manager.build_did_document(
+            did = self.did, public_key= self.public_key, entity_name = self.name
+        )
+        self.is_verified = self.ae.giveAccreditation(target_did=self.did_document, entity_type=self.entity_type)
+        if self.is_verified:
             print(f"Issuer accreditato con did -> {self.did}")
             return True
         else:
