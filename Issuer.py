@@ -1,20 +1,23 @@
 from DIDManager import DIDManager
 
 class Issuer:
-    def __init__(self, name):
+    def __init__(self, name, dlt, ae):
         self.name = name
-        self.did = DIDManager(name)
-        self.wallet = None
+        self.did = None
+        self.dlt = dlt
+        self.did_manager = DIDManager(name, dlt, type="Issuer")
+        self.ae = ae
+        self.public_key = None
+        self.did_document = None
+        self.entity_type = "Issuer"
 
-    def accredit(self):
+    def accredit_request(self):
         print(f"Accreditamento dell'Issuer {self.name}")
-        self.did = self.did.generate_did()
-        self.wallet = self.load_wallet()
-        print(f"Issuer accreditato con did -> {self.did}")
-
-    def load_wallet(self):
-        return {"private_key": "privkey", "public_key": "pubkey"}
-
-    def register_on_blockchain(self):
-        # Placeholder per interazione con la blockchain
-        print("Registrazione DID sulla blockchain (simulata).")
+        self.did = self.did_manager.generate_did()
+        self.public_key = self.did_manager.generate_keys()
+        self.did_document = self.did_manager.build_did_document()
+        outcome = self.ae.giveAccereditation(caller_did = self.did, target_did= self.did_document, entity_type = self.entity_type)
+        if outcome:
+            print(f"Issuer accreditato con did -> {self.did}")
+        else:
+            print('Errore di accreditamento.\nEnte non accreditato.')

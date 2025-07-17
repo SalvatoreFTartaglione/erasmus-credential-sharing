@@ -6,18 +6,21 @@ from cryptography.hazmat.primitives import serialization
 
 
 class DIDManager:
-    def __init__(self, entity_name, pairwise=False):
+    def __init__(self, entity_name, dlt, type, pairwise=False):
         self.entity_name = entity_name
         self.pairwise = pairwise
+        self.dlt = dlt
         self.did = None
         self.did_document = None
         self.private_key = None
         self.public_key = None
+        self.type = type
 
     def generate_did(self):
         # Simula una generazione decentralizzata di DID
+        clean_name = self.entity_name.lower().replace(" ", "")
         unique_suffix = uuid.uuid4().hex
-        self.did = f"did:{self.entity_name.lower()}:{unique_suffix}"
+        self.did = f"did:{clean_name}:{unique_suffix}"
         return self.did
 
     def generate_keys(self):
@@ -48,23 +51,28 @@ class DIDManager:
             "verificationMethod": [{
                 "id": key_id,
                 "type": "RsaVerificationKey2018",
-                "controller": self.did,
+                "controller": self.did,     # controller = il proprietario del DID.
                 "publicKeyPem": self.public_key
             }],
             "authentication": [key_id],
             "assertionMethod": [key_id],
+            "entityType": self.type,
             "service": [{
                 "id": f"{self.did}#issuer-endpoint",
                 "type": "IssuerService",
-                "serviceEndpoint": f"https://api.{self.entity_name.lower()}.org"
+                "serviceEndpoint": f"https://api.{self.entity_name.lower().replace(" ", "").replace("à", "a")}.org"
             }]
         }
         return self.did_document
 
-    def register_on_blockchain(self):
-        # Simulazione della registrazione tramite smart contract
-        print(f"[Blockchain] Registrazione DID '{self.did}' su AccreditationRegistry...")
-        print(f"[Blockchain] DID Document hash: {hashlib.sha256(json.dumps(self.did_document).encode()).hexdigest()}")
+    def register_on_blockchain(self, dlt):
+        data = {
+            'type': 'DIDRegistration',
+            'did': self.did,
+            'did_document': self.did_document,
+        }
+        dlt.add_block(data)
+        print(f"[DLT] DID registrato sulla blockchain: {self.did}")
 
     def rotate_did(self):
         # Per attori che richiedono DID rotabili (e.g. lo studente)

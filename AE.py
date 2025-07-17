@@ -1,0 +1,11 @@
+class AE:
+    def __init__(self, did,contract):
+        self.name = 'AE'
+        self.did = did
+        self.contract = contract
+
+    def getDid(self):
+        return self.did
+
+    def giveAccereditation(self,caller_did, target_did, entity_type):
+        return self.contract.accredit_entity(caller_did=caller_did, target_did = target_did, entity_type = entity_type)
