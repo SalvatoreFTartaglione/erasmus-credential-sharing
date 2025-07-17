@@ -9,6 +9,7 @@ class Issuer:
         self.did_manager = did_manager
         self.ae = ae
         self.public_key = None
+        self.private_key = None
         self.did_document = None
         self.entity_type = "Issuer"
         self.is_verified = False
@@ -17,7 +18,7 @@ class Issuer:
     def accredit_request(self):
         print(f"Accreditamento dell\'Issuer {self.name}")
         self.did = self.did_manager.generate_did(self.name)
-        self.public_key = self.did_manager.generate_keys()
+        self.public_key,self.private_key = self.did_manager.generate_keys()
         self.did_document = self.did_manager.build_did_document(
             did = self.did, public_key= self.public_key, entity_name = self.name
         )
@@ -30,7 +31,7 @@ class Issuer:
             return False
 
     def release_credential(self, entity_type):
-        if self.isAccredited and entity_type == "Student":
+        if self.is_verified and entity_type == "Student":
             # rilascia una credenziale
             credential_hash = None
             self.credential_registry.register_credential(credential_hash=credential_hash, issuer_did=self.did)

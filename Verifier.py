@@ -9,6 +9,7 @@ class Verifier:
         self.did_manager = did_manager
         self.ae = ae
         self.public_key = None
+        self.private_key = None
         self.did_document = None
         self.entity_type = "Verifier"
         self.is_verified = False
@@ -18,7 +19,7 @@ class Verifier:
     def accredit_request(self):
         print(f"Accreditamento del Verifier {self.name}")
         self.did = self.did_manager.generate_did(self.name)
-        self.public_key = self.did_manager.generate_keys()
+        self.public_key, self.private_key = self.did_manager.generate_keys()
         self.did_document = self.did_manager.build_did_document(
             did=self.did, public_key=self.public_key, entity_name=self.name
         )
