@@ -3,7 +3,7 @@ import time
 class AccreditationRegistry:
     def __init__(self, accrediting_authority_did, dlt):
         self.accrediting_authority_did = accrediting_authority_did
-        self.accredited_entities = {}  # Map DID -> metadata (tipo, timestamp, ecc.)
+        self.accredited_entities = {}
         self.dlt = dlt
 
     def accredit_entity(self, caller_did, target_did, entity_type):
@@ -20,6 +20,7 @@ class AccreditationRegistry:
             return False
 
         if entity_type not in ["Issuer", "Verifier"]:
+            print(f"Un'entità di tipo {entity_type} NON può essere certificata")
             return False
 
         self.accredited_entities[did_str] = {
@@ -45,6 +46,9 @@ class AccreditationRegistry:
         print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
         print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
         return True
+
+    def get_accreditation_info(self, did):
+        return self.accredited_entities.get(did, None)
 
     def is_accredited(self, did):
         return did in self.accredited_entities

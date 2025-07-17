@@ -1,4 +1,5 @@
 from DLT.AccreditationRegistry import AccreditationRegistry
+from DLT.CredentialStatusRegistry import CredentialStatusRegistry
 from DLT.DLT import DLT
 from Issuer import Issuer
 from Verifier import Verifier
@@ -16,12 +17,20 @@ def init_actors():
     dlt = DLT()
 
     # Deploy the Accreditation Registry contract
-    print("\n##########################################################")   
+    print("\n##########################################################")
     print("\n#  Deploy del contratto AccreditationRegistry sul DLT    #")
     print("\n##########################################################")
     authority_did = "did:entediaccreditamento:0001"
     accreditation_registry = AccreditationRegistry(accrediting_authority_did=authority_did, dlt=dlt)
     dlt.deploy_contract(name="AccreditationRegistry", contract=accreditation_registry)
+
+    # Deploy the Accreditation Registry contract
+    print("\n#############################################################")
+    print("\n#  Deploy del contratto CredentialStatusRegistry sul DLT    #")
+    print("\n#############################################################")
+    credential_status_registry = CredentialStatusRegistry(dlt=dlt)
+    dlt.deploy_contract(name = "CredentialStatusRegistry", contract = credential_status_registry)
+
 
     # Initialize the AE (Accreditation Entity)
     print("\n##########################################################")
@@ -30,18 +39,18 @@ def init_actors():
     ae = AE(authority_did, accreditation_registry)
 
 
-    # init Issuer 
+    # init Issuer
     print("\n##########################################################")
     print("\n#  Inizializzazione dell\'Issuer (Università di Rennes)  #")
     print("\n##########################################################")
-    
+
     # Logica che accredita l'issuer
-    issuer = Issuer("Università di Rennes\n\n", dlt, ae)
+    issuer = Issuer("Università di Rennes\n\n", dlt, ae, credential_status_registry)
     if issuer.accredit_request():
         print("\n##########################################################")
         print("\n#          Issuer accreditato con successo               #")
         print("\n##########################################################")
-        print('\n') 
+        print('\n')
     else:
         print("\n##########################################################")
         print("\n#          Issuer non accreditato                         #")
@@ -53,13 +62,13 @@ def init_actors():
     print("\n# Inizializzazione dell\'Verifier (Università di Salerno)#")
     print("\n##########################################################")
     verifier = Verifier("Università di Salerno\n\n", dlt, ae)
-    
+
     # Logica che accredita il Verifier
     if verifier.accredit_request():
         print("\n##########################################################")
         print("\n#          Verifier accreditato con successo             #")
         print("\n##########################################################")
-        print('\n') 
+        print('\n')
     else:
         print("\n##########################################################")
         print("\n#          Verifier non accreditato                       #")
@@ -75,9 +84,9 @@ def init_actors():
         "verifier": verifier,
         #"student": student,
     }
-    
-    
-    
+
+
+
 if __name__ == "__main__":
-    
+
     actors = init_actors()

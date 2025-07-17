@@ -65,16 +65,7 @@ class DIDManager:
         }
         return self.did_document
 
-    def register_on_blockchain(self, dlt):
-        data = {
-            'type': 'DIDRegistration',
-            'did': self.did,
-            'did_document': self.did_document,
-        }
-        dlt.add_block(data)
-        print(f"[DLT] DID registrato sulla blockchain: {self.did}")
-
     def rotate_did(self):
         # Per attori che richiedono DID rotabili (e.g. lo studente)
         print(f"[DIDManager] Rotazione del DID per {self.entity_name}")
-        return self.__class__(self.entity_name, pairwise=True)  # Ritorna una nuova istanza
+        return self.__class__(self.entity_name, pairwise=True, dlt=self.dlt, type=self.type) # Ritorna una nuova istanza
