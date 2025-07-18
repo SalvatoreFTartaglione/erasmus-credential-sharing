@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/2025/credentials/v1",
+    "https://www.w3.org/2025/credentials/examples/v1"
+  ],
+  "id": "urn:uuid:4549107890974951633006016268966980849941893595",
+  "type": [
+    "VerifiableCredential",
+    "AccreditationCredential"
+  ],
+  "issuer": "did:entediaccreditamento:f95f26bf10144de486de8ac44efff8a4",
+  "issuanceDate": "2025-07-18T17:19:07.801626+00:00Z",
+  "credentialSubject": {
+    "id": "did:universitàdisalerno:28920607982d47f393764d8326723fe4",
+    "type": "Verifier",
+    "accreditationStatus": "Accredited",
+    "accreditationAuthority": "Ente di Accreditamento"
+  },
+  "proof": {
+    "type": "RsaSignature2025",
+    "created": "2025-07-18T17:19:07.801626+00:00Z",
+    "verificationMethod": "did:entediaccreditamento:f95f26bf10144de486de8ac44efff8a4#keys-1",
+    "proofPurpose": "assertionMethod",
+    "signatureValue": "YVVy11yOvNQx/HNT8CLn3JOL4LnE+AAkmxt0Ij0sbYe4UhH0eTSZHKY4OEtaC5ZUMCZXUybIDcxuKDCMf/UGp/7U889lepYJ4fvCYwmlZz56rgFXdWCCPYE11+5cDVMToyjpQODV6LZCu9tZtULJ8uWvbARio/MSRmdRGeMOruJVtwE90qr0aN33ZxvERF2a9MjyBG/xHOngxtWg7mdPzdhpi/Do4zom7KcJ3JzPjtRlUAMy10NOFClRXRzMCGrd6d4Hredlde535C2plEE8mkSWhUOvMiPYwxBm0Yz3RZJyqLW/Mqdm/e+m1YrGdR+FnMJejSSExx0vJG1mLrL0fw=="
+  }
+}

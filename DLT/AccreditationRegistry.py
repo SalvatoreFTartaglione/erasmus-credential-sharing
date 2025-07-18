@@ -11,19 +11,19 @@ class AccreditationRegistry:
         
     def accredit_entity(self, caller_did, target_did, entity_type):
         # Controllo se il chiamante è l'ente di accreditamento
-        print(caller_did, self.accrediting_authority_did)
+        #print(caller_did, self.accrediting_authority_did)
         if caller_did != self.accrediting_authority_did:
-            print(f"[AccreditationRegistry] ERRORE: {caller_did} non è autorizzato ad accreditare.")
+            #print(f"[AccreditationRegistry] ERRORE: {caller_did} non è autorizzato ad accreditare.")
             return False
 
         did_str = target_did["id"]
-        print(self.accredited_entities)
+        #print(self.accredited_entities)
         if did_str in self.accredited_entities:
-            print(f"[AccreditationRegistry] DID già accreditato: {did_str}")
+            # print(f"[AccreditationRegistry] DID già accreditato: {did_str}")
             return False
 
         if entity_type not in ["Issuer", "Verifier"]:
-            print(f"Un'entità di tipo {entity_type} NON può essere certificata")
+            # print(f"Un'entità di tipo {entity_type} NON può essere certificata")
             return False
 
         self.accredited_entities[did_str] = {
@@ -46,8 +46,8 @@ class AccreditationRegistry:
         self.dlt.add_block(block_data)
         
         
-        print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
-        print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
+        # print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
+        # print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
         return True
 
     def get_accreditation_info(self, did):

@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/2025/credentials/v1",
+    "https://www.w3.org/2025/credentials/examples/v1"
+  ],
+  "id": "urn:uuid:179231777164574517209550255486372412432897912358",
+  "type": [
+    "VerifiableCredential",
+    "AccreditationCredential"
+  ],
+  "issuer": "did:entediaccreditamento:f95f26bf10144de486de8ac44efff8a4",
+  "issuanceDate": "2025-07-18T17:19:07.599715+00:00Z",
+  "credentialSubject": {
+    "id": "did:universitàdirennes:8a7f5f4fd6a64cd194856275158b7322",
+    "type": "Issuer",
+    "accreditationStatus": "Accredited",
+    "accreditationAuthority": "Ente di Accreditamento"
+  },
+  "proof": {
+    "type": "RsaSignature2025",
+    "created": "2025-07-18T17:19:07.599715+00:00Z",
+    "verificationMethod": "did:entediaccreditamento:f95f26bf10144de486de8ac44efff8a4#keys-1",
+    "proofPurpose": "assertionMethod",
+    "signatureValue": "rqVVc90LiZcw/uave+VgVGSvJk6yaEa7trmPH9xrb1bmqq1QW6k7NZS/i7aEs/sEEXHeoyG++U13fVEvpZusHAvtKw54HyILoWbQP1uyJ7z3uyvjbXbu9DJz/Y4frPo1XV1A7yqz2b/uVzg2wC+kVw7a9CW/G4Cl3u7ci/8XqsL+e0RYhxVjX5SmeyoyiZSWp+5uNxkA0MLF9J5ELuj5DYVlaPF0Td4RHyK4t1wVYGYeAK7tE6uBQKO0RPgt7WBsa+2ml0NFj1i4vtks2q6Ry+8o70LObWUR4PGtjJctF4ze19TStB3lpQ3bObiOzej9E79YOaXlNcAZL4Xx+vpwog=="
+  }
+}
