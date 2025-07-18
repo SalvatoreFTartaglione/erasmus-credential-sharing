@@ -9,27 +9,41 @@ from cryptography.hazmat.backends import default_backend
 
 class AE:
     
-    def __init__(self, did,contract):
-        self.name = 'Ente di Accreditamento'
-        self.did = did
-        self.contract = contract     # istanza del contratto AccreditationRegistry
-        # Generazione della coppia di chiavi RSA per l'AE 
-        self.private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-        )
-        self.public_key = self.private_key.public_key()
-        
-        # Creazione di un certificato X.509 auto-firmato per l'AE 
-        self.ca_certificate = self._generate_AE_X509_certificate(self.did, self.public_key, self.private_key)
-    
-    def getDid(self):
-        return self.did
+    def __init__(self, name, accreditation_registry, did_manager):
+        self.name = name 
+        self.accreditation_registry = accreditation_registry 
+        # Le seguenti operazioni avvengono nel costruttore perche l'AE non ha bisogno di accreditarsi, bensì si accredita 'da sola'
+        # Genera il DID dell'AE
+        self.did = did_manager.generate_did(self.name)
+        # genera la chiave pubblica e privata dell'AE
+        self.public_key, self.private_key = did_manager.generate_keys()
+        # Crea il DID Document dell'AE
+        self.did_document = did_manager.build_did_document(did=self.did, public_key=self.public_key, entity_name=self.name)
+        print(f"AE: DID Document creato per {self.name} con DID {self.did}")
+        # coverti chiave pubblica da formato PEM a RSA PublicNumbers
+        self.primitive_public_key = serialization.load_pem_public_key(
+                        self.public_key.encode(),
+                        backend=default_backend() 
+                    )
+        self.primitive_private_key = serialization.load_pem_private_key(
+                        self.private_key.encode(),
+                        password=None,
+                        backend=default_backend() 
+                    )
+        # Crea il certificato X.509 dell'AE
+        self.ca_certificate = self._generate_AE_X509_certificate(self.did, self.primitive_public_key, self.primitive_private_key)
 
+        
+        
+        
+    def get_did(self):
+        """
+        Returns the DID of the AE.
+        """
+        return self.did
 
     # Metodo per accreditare un Issuer o un Verifier
     def giveAccreditation(self, target_did, entity_type):
-        
         # 1. Estrarre la chiave pubblica dell'entità dal suo DID Document
         target_public_key_pem = None
         target_public_key = None
@@ -57,7 +71,7 @@ class AE:
             target_did_id=target_did_id,
             entity_type=entity_type, # Passa entity_type qui
             issuer_certificate_subject=self.ca_certificate.subject, # Soggetto del certificato CA (Issuer)
-            signer_private_key=self.private_key # Chiave privata dell'AE per firmare
+            signer_private_key=self.primitive_private_key # Chiave privata dell'AE per firmare
         )
 
         # Firmare il certificato con la chiave privata dell'AE
@@ -80,7 +94,7 @@ class AE:
         # print(f"\n--- DID Document dell'entità DOPO l'aggiornamento (per {target_did_id}): ---\n{json.dumps(target_did, indent=2)}")
          
         # 4. Inviare la transazione all'AccreditationRegistry con il DID Document aggiornato
-        outcome = self.contract.accredit_entity(
+        outcome = self.accreditation_registry.accredit_entity(
             caller_did=self.did, 
             target_did=target_did, # Questo DID Document ora ha il cert X.509
             entity_type=entity_type,

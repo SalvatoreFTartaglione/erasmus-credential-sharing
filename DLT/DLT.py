@@ -23,7 +23,7 @@ class DLT:
         }
         block['hash'] = self.hash_block(block)
         self.ledger.append(block)
-        print(f"[DLT] Nuovo blocco aggiunto: hash {block['hash'][:10]}...")
+        # print(f"[DLT] Nuovo blocco aggiunto: hash {block['hash'][:10]}...")
 
     def hash_block(self, block):
         block_string = json.dumps(block, sort_keys=True).encode()

@@ -1,11 +1,14 @@
 import time
 
 class AccreditationRegistry:
-    def __init__(self, accrediting_authority_did, dlt):
-        self.accrediting_authority_did = accrediting_authority_did
+    def __init__(self, dlt):
+        self.accrediting_authority_did = None
         self.accredited_entities = {}
         self.dlt = dlt
 
+    def set_accrediting_authority(self, accrediting_authority_did):
+        self.accrediting_authority_did = accrediting_authority_did
+        
     def accredit_entity(self, caller_did, target_did, entity_type):
         # Controllo se il chiamante è l'ente di accreditamento
         print(caller_did, self.accrediting_authority_did)

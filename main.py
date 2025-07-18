@@ -9,21 +9,28 @@ from AE import AE
 
 def init_actors():
     """
-    Initialize the actors in the system.
+    Initializes the actors in the system.
     """
-    # init DLT
+
+    ###############################
+    #       INITIALIZE DLT        #
+    ###############################
     print("\n##########################################################")
     print("\n#              Inizializzazione del DLT                  #")
     print("\n##########################################################")
     dlt = DLT()
+    # Initialize the DID Manager with the DLT instance
     did_manager = DIDManager(dlt=dlt)
 
+
+    ###############################
+    #  SMART CONTRACTS DEPLOYMENT #
+    ###############################
     # Deploy the Accreditation Registry contract
     print("\n\n\n##########################################################")
     print("\n#  Deploy del contratto AccreditationRegistry sul DLT    #")
     print("\n##########################################################")
-    authority_did = "did:entediaccreditamento:0001"
-    accreditation_registry = AccreditationRegistry(accrediting_authority_did=authority_did, dlt=dlt)
+    accreditation_registry = AccreditationRegistry(dlt=dlt)
     dlt.deploy_contract(name="AccreditationRegistry", contract=accreditation_registry)
 
     # Deploy the Accreditation Registry contract
@@ -33,21 +40,25 @@ def init_actors():
     credential_status_registry = CredentialStatusRegistry(dlt=dlt)
     dlt.deploy_contract(name = "CredentialStatusRegistry", contract = credential_status_registry)
 
-
+    ###############################
+    #      INIT SYSTEM ACTORS     #
+    ###############################
     # Initialize the AE (Accreditation Entity)
     print("\n\n\n##########################################################")
     print("\n#  Inizializzazione dell\'Accreditation Entity (AE)      #")
     print("\n##########################################################")
-    ae = AE(authority_did, accreditation_registry)
-
+    ae = AE('Ente di Accreditamento', accreditation_registry, did_manager)
+    
+    
+    # set the AE did in the credential_status_registry to allow it to issue credentials
+    accreditation_registry.set_accrediting_authority(ae.get_did())
 
     # init Issuer
     print("\n##########################################################")
     print("\n#  Inizializzazione dell\'Issuer (Università di Rennes)  #")
     print("\n##########################################################")
-
     # Logica che accredita l'issuer
-    issuer = Issuer("Università di Rennes\n\n", dlt, ae, credential_status_registry, did_manager)
+    issuer = Issuer("Università di Rennes", dlt, ae, credential_status_registry, did_manager)
     if issuer.accredit_request():
         print("\n##########################################################")
         print("\n#          Issuer accreditato con successo               #")
@@ -63,8 +74,7 @@ def init_actors():
     print("\n##########################################################")
     print("\n# Inizializzazione dell\'Verifier (Università di Salerno)#")
     print("\n##########################################################")
-    verifier = Verifier("Università di Salerno\n\n", dlt, ae, did_manager=did_manager)
-
+    verifier = Verifier("Università di Salerno", ae, did_manager=did_manager)
     # Logica che accredita il Verifier
     if verifier.accredit_request():
         print("\n##########################################################")
@@ -76,6 +86,7 @@ def init_actors():
         print("\n#          Verifier non accreditato                       #")
         print("\n##########################################################")
         print('\n')
+        
     # Return the initialized actors
     return {
         "dlt": dlt,

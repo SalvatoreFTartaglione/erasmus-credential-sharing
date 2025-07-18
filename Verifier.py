@@ -1,11 +1,18 @@
+import json
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+import datetime
+
 from DIDManager import DIDManager
 
 class Verifier:
     
-    def __init__(self, name, dlt, ae, did_manager):
+    def __init__(self, name, ae, did_manager):
         self.name = name
         self.did = None
-        self.dlt = dlt
         self.did_manager = did_manager
         self.ae = ae
         self.public_key = None
@@ -17,7 +24,7 @@ class Verifier:
     # Request accreditation for the Verifier
     # This method generates a DID, public key, and DID document, then requests accreditation from
     def accredit_request(self):
-        print(f"Accreditamento del Verifier {self.name}")
+        # print(f"Accreditamento del Verifier {self.name}")
         self.did = self.did_manager.generate_did(self.name)
         self.public_key, self.private_key = self.did_manager.generate_keys()
         self.did_document = self.did_manager.build_did_document(
@@ -25,8 +32,8 @@ class Verifier:
         )
         self.is_verified = self.ae.giveAccreditation(target_did = self.did_document, entity_type = self.entity_type)
         if self.is_verified:
-            print(f"Verifier accreditato con did -> {self.did}")
+            # print(f"Verifier accreditato con did -> {self.did}")
             return True
         else:
-            print('Errore di accreditamento.\nEnte non accreditato.')
+            # print('Errore di accreditamento.\nEnte non accreditato.')
             return False
