@@ -19,7 +19,7 @@ def init_actors():
     did_manager = DIDManager(dlt=dlt)
 
     # Deploy the Accreditation Registry contract
-    print("\n##########################################################")
+    print("\n\n\n##########################################################")
     print("\n#  Deploy del contratto AccreditationRegistry sul DLT    #")
     print("\n##########################################################")
     authority_did = "did:entediaccreditamento:0001"
@@ -27,7 +27,7 @@ def init_actors():
     dlt.deploy_contract(name="AccreditationRegistry", contract=accreditation_registry)
 
     # Deploy the Accreditation Registry contract
-    print("\n#############################################################")
+    print("\n\n\n#############################################################")
     print("\n#  Deploy del contratto CredentialStatusRegistry sul DLT    #")
     print("\n#############################################################")
     credential_status_registry = CredentialStatusRegistry(dlt=dlt)
@@ -35,7 +35,7 @@ def init_actors():
 
 
     # Initialize the AE (Accreditation Entity)
-    print("\n##########################################################")
+    print("\n\n\n##########################################################")
     print("\n#  Inizializzazione dell\'Accreditation Entity (AE)      #")
     print("\n##########################################################")
     ae = AE(authority_did, accreditation_registry)
