@@ -1,20 +1,18 @@
 import uuid
-import json
-import hashlib
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 
 
 class DIDManager:
-    def __init__(self, dlt, pairwise=False):
-        self.pairwise = pairwise
+    def __init__(self, dlt):
         self.dlt = dlt
 
     def generate_did(self, entity_name):
-        # Simula una generazione decentralizzata di DID
+        # Normalizza nome
         clean_name = entity_name.lower().replace(" ", "")
-        unique_suffix = uuid.uuid4().hex
-        did = f"did:{clean_name}:{unique_suffix}"
+        suffix = uuid.uuid4().hex
+        did = f"did:{clean_name}:{suffix}"
+
         return did
 
     def generate_keys(self):
@@ -57,8 +55,3 @@ class DIDManager:
             }]
         }
         return did_document
-
-    def rotate_did(self, entity_name):
-        # Per attori che richiedono DID rotabili (e.g. lo studente)
-        print(f"[DIDManager] Rotazione del DID per {entity_name}")
-        return self.__class__(pairwise=True, dlt=self.dlt) # Ritorna una nuova istanza

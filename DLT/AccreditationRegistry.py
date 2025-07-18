@@ -11,7 +11,6 @@ class AccreditationRegistry:
         
     def accredit_entity(self, caller_did, target_did, entity_type):
         # Controllo se il chiamante è l'ente di accreditamento
-        #print(caller_did, self.accrediting_authority_did)
         if caller_did != self.accrediting_authority_did:
             #print(f"[AccreditationRegistry] ERRORE: {caller_did} non è autorizzato ad accreditare.")
             return False
