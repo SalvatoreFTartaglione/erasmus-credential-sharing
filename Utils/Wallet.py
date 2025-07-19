@@ -1,49 +1,50 @@
 import uuid
-from TLS import TLS
+from Utils.TLS import TLS
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 class Wallet:
-    def __init__(self, did_manager, issuer, verifier):
-        self.did = None
-        self.did_manager = did_manager
-        self.public_key , self.private_key = did_manager.generate_keys()
+    def __init__(self, student_did, student_did_document, student_public_key, student_private_key, issuer, verifier):
         self.entity_name = "Wallet_" + str(uuid.uuid4())
         self.credential = None
+        self.student_did = student_did
+        self.student_did_document = student_did_document
+        self.student_public_key = student_public_key
+        self.student_private_key = student_private_key
         self.issuer = issuer
         self.verifier = verifier
+        
 
-    def get_did(self):
-        return self.did
+    def get_student_did(self):
+        return self.student_did
 
-    def generateDid(self):
-        self.did = self.did_manager.generate_did(entity_name=self.entity_name)
+
+    def get_student_did_document(self):
+        return self.student_did_document
+
 
     def request_credential_to_Issuer(self, student_did):
-        if self.did is None:
-            print("Questo wallet non ha un did, NON è possibile continuare...")
-            return
-        print(f"Sono il wallet {self.did} e faccio una richiesta di credenziale all'Issuer")
-        self.generateDid()
-        self.credential = self.issuer.request_credential(subject_did=self.did)
+        print(f"Sono il wallet di {self.student_did} e faccio una richiesta di credenziale all'Issuer")
+        
+        self.credential = self.issuer.request_credential(subject_did=self.student_did)
+        
         if self.credential is not None:
             print(self.credential)
             return
+        
         print("[WALLET] ERRORE: La richiesta non è andata a buon fine")
 
 
     def send_vp_to_Verifier(self):
-        if self.did is None:
-            print("Questo wallet non ha un did, NON è possibile continuare...")
-            return
         if not self.credential:
             print("Non c'è una credenziale valida")
             return
-        print(f"Sono il wallet {self.did} e invio una VP al Verifier")
+        print(f"Sono il wallet di {self.student_did} e invio una VP al Verifier")
+
 
     def pubk_to_issuer(self, did, public_key_obj, public_key_pem):
         encrypted_key, aes_key = TLS.simulate_tls_handshake(
             client_private_key=None,
-            client_public_key=self.public_key,
+            client_public_key=self.student_public_key,
             server_public_key=TLS.load_public_key_from_pem(self.issuer.get_public_key())
         )
 

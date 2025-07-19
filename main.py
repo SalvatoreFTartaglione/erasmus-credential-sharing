@@ -1,11 +1,12 @@
-from DIDManager import DIDManager
+from Utils.DIDManager import DIDManager
 from DLT.AccreditationRegistry import AccreditationRegistry
 from DLT.CredentialStatusRegistry import CredentialStatusRegistry
+from DLT.StudentDIDRegistry import StudentDIDRegistry
 from DLT.DLT import DLT
-from Issuer import Issuer
-from Verifier import Verifier
-from AE import AE
-from Student import Student
+from Actors.Issuer import Issuer
+from Actors.Verifier import Verifier
+from Actors.AE import AE
+from Actors.Student import Student
 import time
 import random
 
@@ -21,26 +22,39 @@ def init_actors():
     print("\n#              Inizializzazione del DLT                  #")
     print("\n##########################################################")
     dlt = DLT()
-    # Initialize the DID Manager with the DLT instance
-    did_manager = DIDManager(dlt=dlt)
 
 
     ###############################
     #  SMART CONTRACTS DEPLOYMENT #
     ###############################
     # Deploy the Accreditation Registry contract
-    print("\n\n\n##########################################################")
-    print("\n#  Deploy del contratto AccreditationRegistry sul DLT    #")
+    print("\n\n\n######################################################")
+    print("\n#  Deploy del contratto AccreditationRegistry sulla DLT  #")
     print("\n##########################################################")
     accreditation_registry = AccreditationRegistry(dlt=dlt)
     dlt.deploy_contract(name="AccreditationRegistry", contract=accreditation_registry)
 
     # Deploy the Accreditation Registry contract
-    print("\n\n\n#############################################################")
-    print("\n#  Deploy del contratto CredentialStatusRegistry sul DLT    #")
+    print("\n\n\n##########################################################")
+    print("\n#  Deploy del contratto CredentialStatusRegistry sulla DLT   #")
     print("\n#############################################################")
     credential_status_registry = CredentialStatusRegistry(dlt=dlt)
     dlt.deploy_contract(name = "CredentialStatusRegistry", contract = credential_status_registry)
+    
+    # Deploy the Student DID Registry contract
+    print("\n\n\n########################################################")
+    print("\n#  Deploy del contratto StudentDIDRegistry sulla DLT       #")
+    print("\n############################################################")
+    student_did_registry = StudentDIDRegistry(dlt=dlt)
+    dlt.deploy_contract(name="StudentDIDRegistry", contract=student_did_registry)
+    
+    
+    ###############################
+    #  DID MANAGER INITIALIZATION #
+    ###############################
+    did_manager = DIDManager(accreditation_registry=accreditation_registry, credential_status_registry=credential_status_registry, student_did_registry=student_did_registry)
+
+
 
     ###############################
     #      INIT SYSTEM ACTORS     #
@@ -95,73 +109,29 @@ def init_actors():
     print("\n##########################################################")
     print('\n')
 
-    studente = Student(name ="Salvatore", did_manager=did_manager, issuer=issuer)
-
-    print("\n############################################################################")
-    print(f"\n#        Studente {studente.get_nome()} creato con successo               #")
-    print("\n############################################################################")
-    print('\n')
+    student = Student(name ="Salvatore", 
+                        did_manager=did_manager, 
+                        student_did_registry=student_did_registry, 
+                        issuer=issuer, verifier=verifier
+                        )
+    print(f"\nStudente {student.get_name()} creato con successo")
 
     print("\n########################################################")
     print(f"\n#        Creazione delle credenziali                  #")
     print("\n########################################################")
     print('\n')
-    studente.create_email_and_password()
-
-    print("Inserire le credenziali per accedere al wallet personale")
-    email = input("Email: ")
-    password = input("Password: ")
-
-    while email != studente.get_email() or password != studente.get_password():
-        print("Credenziali errate. Riprovare:")
-        email = input("Email: ")
-        password = input("Password: ")
-
-    otp = str(random.randint(100000, 999999))
-    print(f"\nUn OTP è stato inviato all'indirizzo registrato ({studente.get_email()}).")
-    print(f"OTP generato: {otp}")
-
-    attempts = 0
-    max_attempts = 5
-    wait_time = 2  # secondi
-
-    while True:
-        user_otp = input("Inserisci OTP ricevuto: ")
-        if user_otp == otp:
-            break
-        else:
-            attempts += 1
-            if attempts >= max_attempts:
-                print("Hai superato il numero massimo di tentativi. Accesso bloccato.")
-                exit(1)
-            print("OTP errato. Riprova.")
-            time.sleep(wait_time)
-            wait_time *= 2
-
-    print("\n#############################################################")
-    print(f"\n#          Autenticazione avvenuta con successo!           #")
-    print("\n#############################################################")
-    print('\n')
-
-    studente.create_wallet()
-
-    if not studente.get_wallet():
-        print("C'è stato un errore.")
-        exit(1)
-
-    studente.send_public_key_to_issuer()
-    menu_principale(studente)
-
+    student.create_email_and_password()
 
     # Return the initialized actors
     return {
         "dlt": dlt,
         "accreditation_registry": accreditation_registry,
-        #"credential_status_registry": credential_status_registry,
+        "credential_status_registry": credential_status_registry,
+        "student_did_registry": student_did_registry,
         "ae": ae,
         "issuer": issuer,
         "verifier": verifier,
-        "student": studente,
+        "student": student,
     }
 
 
@@ -190,9 +160,9 @@ def checkInput(lista_utente, lista_esami):
 
     return True, []
 
-def menu_principale(studente):
+def menu_principale(student):
     while True:
-        print(f"Benvenuto nel tuo wallet {studente.get_nome()}.")
+        print(f"Benvenuto nel tuo wallet {student.get_name()}.")
         print("[1] Per ottenere la credenziale")
         print("[2] Per passare alla modalità di generazione della presentazione")
         choice = input("")
@@ -204,15 +174,15 @@ def menu_principale(studente):
         if choice == "1":
             print("MENU CREDENZIALE")
             string = input("Immettere la password per avviare il processo di richiesta della credenziale all'università ospitante\npassword: ")
-            while string != studente.get_password():
+            while string != student.get_password():
                 print("Password errata. Riprova.")
                 string = input("password: ")
             print("Password corretta.")
             print("Sto inviando una richiesta di credenziale all'università ospitante.\n")
         else:
-            menu_presentazione(studente)
+            menu_presentazione(student)
 
-def menu_presentazione(studente):
+def menu_presentazione(student):
     print("MENU PRESENTAZIONE")
     print("Digitare '-1' se si vuole tornare indietro, altrimenti immettere gli identificativi degli esami, separati da ';'")
     print("ESAMI;ID")
@@ -240,6 +210,70 @@ def menu_presentazione(studente):
         break
 
 
+def run_simulation(actors):
+    """
+    Runs the simulation with the initialized actors.
+    """
+    dlt = actors["dlt"]
+    accreditation_registry = actors["accreditation_registry"]
+    credential_status_registry = actors["credential_status_registry"]
+    student_did_registry = actors["student_did_registry"]
+    ae = actors["ae"]
+    issuer = actors["issuer"]
+    verifier = actors["verifier"]
+    student = actors["student"]
+
+    print("Inserire le credenziali per accedere al wallet personale")
+    email = input("Email: ")
+    password = input("Password: ")
+
+    while email != student.get_email() or password != student.get_password():
+        print("Credenziali errate. Riprovare:")
+        email = input("Email: ")
+        password = input("Password: ")
+
+    otp = str(random.randint(100000, 999999))
+    print(f"\nUn OTP è stato inviato all'indirizzo registrato ({student.get_email()}).")
+    print(f"OTP generato: {otp}")
+
+    attempts = 0
+    max_attempts = 5
+    wait_time = 2  # secondi
+
+    while True:
+        user_otp = input("Inserisci OTP ricevuto: ")
+        if user_otp == otp:
+            break
+        else:
+            attempts += 1
+            if attempts >= max_attempts:
+                print("Hai superato il numero massimo di tentativi. Accesso bloccato.")
+                exit(1)
+            print("OTP errato. Riprova.")
+            time.sleep(wait_time)
+            wait_time *= 2
+
+    print("\n#############################################################")
+    print(f"\n#          Autenticazione avvenuta con successo!           #")
+    print("\n#############################################################")
+    print('\n')
+
+    student.create_wallet()
+
+    if not student.get_wallet():
+        print("C'è stato un errore.")
+        exit(1)
+
+    student.send_public_key_to_issuer()
+    menu_principale(student)
+
+
+
+
+
+
+
 if __name__ == "__main__":
 
     actors = init_actors()
+    run_simulation(actors)

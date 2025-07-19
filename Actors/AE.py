@@ -13,6 +13,7 @@ class AE:
     
     def __init__(self, name, accreditation_registry, did_manager):
         self.name = name 
+        self.entity_type = "Certificate Authority" 
         self.accreditation_registry = accreditation_registry 
         # Le seguenti operazioni avvengono nel costruttore perche l'AE non ha bisogno di accreditarsi, bensì si accredita 'da sola'
         # Genera il DID dell'AE
@@ -22,7 +23,7 @@ class AE:
         self.public_key, self.private_key = did_manager.generate_keys()
         
         # Crea il DID Document dell'AE      
-        self.did_document = did_manager.build_did_document(did=self.did, public_key=self.public_key, entity_name=self.name)
+        self.did_document = did_manager.build_did_document(did=self.did, public_key=self.public_key, entity_name=self.name, entity_type = self.entity_type)
         
         # coverti chiave pubblica da formato PEM a RSA PublicNumbers
         self.primitive_public_key = serialization.load_pem_public_key(
