@@ -125,6 +125,8 @@ def init_actors():
     print('\n')
     student.create_email_and_password()
 
+    # accreditation_registry.debug_print()
+    
     # Return the initialized actors
     return {
         "dlt": dlt,
@@ -186,11 +188,23 @@ def menu_principale(student):
             
             print("Sto inviando una richiesta di credenziale all'università ospitante.\n")
             
+            # Requesting VC from the issuer
             credential = student.request_credential()
+            
             if credential is not None:
                 print("Credenziale ricevuta con successo.")
+                # Verifica dell'integrità della credenziale tramite il controlla della merkle root
+                integrity_check = student.verify_requested_credential(credential)
+                if integrity_check:
+                    print('GESU CRISTO POSSIAMO ANDARE AVANTI ')
+                    # IMPLEMENTARE CODICE PER GENERARE LA VP E MANDARLA AL VERIFIER
+                    pass
+                else:
+                    pass
+                    
             elif credential is None:
                 print("Errore nella richiesta della credenziale.")
+                
         else:
             menu_presentazione(student)
 
@@ -289,3 +303,4 @@ if __name__ == "__main__":
 
     actors = init_actors()
     run_simulation(actors)
+    

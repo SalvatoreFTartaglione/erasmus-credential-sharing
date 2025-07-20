@@ -1,9 +1,24 @@
 import time
+import json
+
 
 class CredentialStatusRegistry:
     def __init__(self, dlt):
         self.credential_statuses = {}
         self.dlt = dlt
+        
+        
+    def debug_print(self):
+        print("=== Debug: Entità accreditate ===")
+        for key, json_doc in self.credential_statuses.items():
+            print(f"\n🔑 Chiave: {key}")
+            try:
+                # Stampa il JSON in modo leggibile con indentazione
+                formatted_json = json.dumps(json_doc, indent=4, ensure_ascii=False)
+                print(formatted_json)
+            except Exception as e:
+                print(f"❌ Errore nella formattazione del documento JSON: {e}")
+
 
     def register_credential(self, credential_hash, issuer_did):
         if not credential_hash:

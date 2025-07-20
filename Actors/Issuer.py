@@ -53,13 +53,6 @@ class Issuer:
             return False
 
 
-    def release_credential(self, entity_type):
-        if self.is_verified and entity_type == "Student":
-            # rilascia una credenziale
-            credential_hash = None
-            self.credential_status_registry.register_credential(credential_hash=credential_hash, issuer_did=self.did)
-            
-
     def request_credential(self, subject_did):
         """
         Metodo che l'Issuer espone per ricevere richieste di credenziali.
@@ -173,13 +166,12 @@ class Issuer:
             }
         }
 
-        # 1. Crea le foglie del Merkle Tree dagli attributi del credentialSubject
+        # 1. Crea le foglie del Merkle Tree dagli attributi del credentialSubject =>
+        # => L'Università di Rennes organizza gli attributi della VC come foglie di un 
+        #    Merkle Tree, calcolando gli hash di ciascun attributo (dal WP2)
+        
         merkle_leaves = []
-        # Ordina per coerenza, sebbene per il Merkle Tree l'ordine non sia strettamente necessario
-        # per la validità della proof, è buona pratica per la riproducibilità.
-        # Per un Merkle Tree di attributi di un CredentialSubject più complesso, è fondamentale
-        # serializzare ogni attributo (e sotto-attributo) in un formato canonico prima dell'hashing.
-        # Qui useremo una serializzazione JSON ricorsiva per gli attributi più complessi.
+        # Utilizzo di una serializzazione JSON ricorsiva per gli attributi più complessi.
 
         def canonical_json_dump(data):
             # Funzione ricorsiva per creare una stringa JSON canonica per l'hashing
@@ -205,7 +197,9 @@ class Issuer:
             # e per evitare collisioni se solo il valore fosse hashed.
             leaf_content = {key: value}
             leaf_data_str = canonical_json_dump(leaf_content)
-            merkle_leaves.append(hashes.Hash(hashes.SHA256(), backend=default_backend()).update(leaf_data_str.encode('utf-8')).finalize())
+            hasher = hashes.Hash(hashes.SHA256(), backend=default_backend())
+            hasher.update(leaf_data_str.encode('utf-8'))
+            merkle_leaves.append(hasher.finalize())
 
         # Calcola il Merkle Tree e la Merkle Root
         merkle_tree = self._build_merkle_tree(merkle_leaves)
@@ -233,16 +227,21 @@ class Issuer:
             "merkleRoot": merkle_root_b64 # La Merkle Root è inclusa nella VC
         }
 
-        # 3. Firma la Merkle Root con la chiave privata dell'Issuer
+        # 3. Firma la Merkle Root con la chiave privata dell'Issuer 
+        # Dal WP2: => L'Issuer firma poi digitalmente la Merkle Root (o 
+        # un documento che la contiene) con la sua chiave privata
         signature_bytes = self._sign_data(merkle_root)
+        
         signature_b64 = base64.b64encode(signature_bytes).decode('utf-8')
 
         # 4. Aggiungi la prova (proof) alla VC
+        # Dal WP2 => Questa firma attesta l'integrità e l'autenticità di tutti gli 
+        #            attributi contenuti nell'albero e quindi della credenziale
         credential_body['proof'] = {
             "type": "RsaSignature2018",
             "created": issuance_date_obj.isoformat() + "Z",
-            "proofPurpose": "assertionMethod",
-            "verificationMethod": f"{self.did}#bbs-key-1", # Updated verificationMethod to match example style
+            "proofPurpose": "assertionMethod" + '#keys-1',
+            "verificationMethod": f"{self.did}#keys-1",
             "merkleRoot": merkle_root_b64, 
             "signatureValue": signature_b64,
             "proofValue": "simulated_proof_value", # Placeholder as per example structure, requires BBS+
@@ -252,7 +251,7 @@ class Issuer:
         # 5. Aggiungi credentialStatus (nuovo blocco)
         credential_body['credentialStatus'] = {
             "id": f"https://revocation.univ-rennes.fr/status/{os.urandom(2).hex()}", # Simulated status ID
-            "type": "RevocationList2020Status"
+            "type": "RevocationList2025Status"
         }
 
         # 6. Aggiungi accreditation (nuovo blocco)
@@ -265,9 +264,15 @@ class Issuer:
             "issued": accreditation_issued.isoformat() + "Z",
             "validUntil": accreditation_valid_until.isoformat() + "Z"
         }
+        #7. Registrazione della credenziale e del suo status (valido) sul CredentialStatusRegistry
+        print('Registrazione della credenziale e del suo status sul CredentialStatusRegistry')
+        status = self._register_credential_status(credential_body)
         
-        print(f"Issuer {self.name}: Credenziale '{credential_body['type']}' emessa per {subject_name}.")
-        return credential_body
+        if status: 
+            print(f"Issuer {self.name}: Credenziale '{credential_body['type']}' emessa per {subject_name}.")
+            return credential_body
+        else:
+            return None
 
 
 
@@ -301,29 +306,16 @@ class Issuer:
         return tree # The final element is the Merkle Root
 
 
-    def _generate_merkle_proof(self, credential_data: dict, selected_attributes: list, merkle_tree_leaves_hashes: list, merkle_tree_structure: list):
-        """
-        Genera le Merkle Proofs per gli attributi selezionati.
-        Questo è un placeholder e l'implementazione reale sarebbe più complessa.
-        """
-        proofs = []
-        for attr_key in selected_attributes:
-            if attr_key in credential_data:
-                # In una vera implementazione, qui si costruirebbe la proof path
-                # dalla foglia all'albero, ma per ora è simulato.
-                proofs.append({
-                    "attribute": attr_key,
-                    "value": credential_data[attr_key],
-                    "proof": "simulated_merkle_path_for_" + attr_key # Placeholder
-                })
-        return proofs
-
-
     def _sign_data(self, data_bytes: bytes) -> bytes:
         """
         Firma un array di byte usando la chiave privata dell'Issuer.
         """
-        signer = self.primitive_private_key
+        primitive_private_key = serialization.load_pem_private_key(
+                        self.private_key.encode(),
+                        password=None,
+                        backend=default_backend() 
+                        )
+        signer = primitive_private_key
         signature = signer.sign(
             data_bytes,
             padding.PSS(
@@ -333,6 +325,41 @@ class Issuer:
             hashes.SHA256()
         )
         return signature
+    
+    
+    def _register_credential_status(self, credential_body: dict) -> bool:
+        """
+        Registra lo stato iniziale ('valid') di una credenziale sulla DLT
+        tramite il CredentialStatusRegistry, usando l'hash della Merkle Root
+        della credenziale come identificatore. L'operazione è implicitamente
+        firmata dall'Issuer che la invoca (come parte del meccanismo DLT simulato).
+        
+        :param credential_body: Il dizionario completo della Verifiable Credential.
+        :return: True se la registrazione ha successo, False altrimenti.
+        """
+        if not self.credential_status_registry:
+            print("ERRORE: CredentialStatusRegistry non inizializzato.")
+            return False
+
+        # Usiamo la merkleRoot della VC come identificatore unico (hash crittografico)
+        # della credenziale, come da descrizione.
+        credential_hash = credential_body.get('merkleRoot')
+
+        if not credential_hash:
+            print("ERRORE: Merkle Root non trovata nel corpo della credenziale. Impossibile registrare lo stato.")
+            return False
+
+        # La registrazione avviene tramite il CredentialStatusRegistry.
+        # Nel contesto di una DLT simulata, il fatto che l'Issuer.did sia passato
+        # e la transazione venga aggiunta alla DLT implica la "firma" dell'operazione.
+        success = self.credential_status_registry.register_credential( credential_hash=credential_hash, issuer_did=self.did)
+        
+        if success:
+            print(f"Issuer {self.name}: Stato credenziale (hash: {credential_hash[:10]}...) registrato come 'Valid' sulla DLT.")
+        else:
+            print(f"Issuer {self.name}: Fallita la registrazione dello stato della credenziale (hash: {credential_hash[:10]}...).")
+        
+        return success
 
     
     

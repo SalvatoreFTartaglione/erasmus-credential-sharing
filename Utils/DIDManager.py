@@ -1,7 +1,9 @@
 import uuid
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-
+from cryptography import x509
+import json
+from cryptography.hazmat.backends import default_backend
 
 class DIDManager:
     def __init__(self, accreditation_registry, credential_status_registry, student_did_registry):
@@ -82,65 +84,122 @@ class DIDManager:
         return did_document
     
     
-    def resolve_did(self, did, did_type):
+    def resolve_did(self, did: str, did_type: str):
         """
         Risolve un DID per recuperare il suo DID Document corrispondente dalla DLT.
-        Questo metodo interroga lo smart contract AccreditationRegistry sulla DLT.
+        Questo metodo interroga lo smart contract AccreditationRegistry o StudentDIDRegistry sulla DLT.
         :param did: Il DID da risolvere.
-        :param type: Il tipo del caller (Issuer/Verifier/Student) per capire su quale registry operare.
-        :return: Il DID Document associato al DID, o None se non trovato
+        :param did_type: Il tipo del caller (Issuer/Verifier/Student) per capire su quale registry operare.
+        :return: Il DID Document associato al DID (come dizionario Python), o None se non trovato.
         """
         try:
-            # Contolla se il tipo del caller per capire se operare su accreditation_registry (Issuer/Verifier)
-            # o credential_status_registry (Student)
+            retrieved_data = None
+
             if did_type in ["Issuer", "Verifier"]:
-                did_document = self.accreditation_registry.get_did_document(did)
+                retrieved_data = self.accreditation_registry.get_did_document(did)
             elif did_type == "Student":
-                did_document = self.student_did_registry.get_did_document(did)
+                retrieved_data = self.student_did_registry.get_did_document(did)
             else:
-                print(f"Tipo di caller non riconosciuto: {did_type}")
                 return None
             
-            if did_document:
-                return did_document
-            else:
-                print(f"DID Document non trovato sulla dlt per il DID: {did}")
-                return None
+            did_document = None
+            if retrieved_data:
+                if isinstance(retrieved_data, dict) and 'did_document_json' in retrieved_data:
+                    # Se è un dizionario che incapsula una stringa JSON del DID Document
+                    try:
+                        did_document = json.loads(retrieved_data['did_document_json'])
+                    except json.JSONDecodeError:
+                        return None
+                elif isinstance(retrieved_data, dict):
+                    # Se è già il DID Document come dizionario Python
+                    did_document = retrieved_data
+            
+            return did_document
         
-        except Exception as e:
-            print(f"Errore durante la risoluzione del DID {did} di {did_type} con eccezione = {e}")
+        except AttributeError:
+            # ERRORE: L'oggetto registry non ha il metodo get_did_document o attributo non valido.
+            return None
+        except Exception:
+            # Errore generico durante la risoluzione del DID
             return None
 
 
+
+    def get_public_key_from_did_document(self, did_document: dict, key_id: str = None):
+        """
+        Estrae e carica la chiave pubblica da un DID Document.
+        key_id può essere usato per selezionare una specifica chiave se ce ne sono più.
+        """
+        print(f"  DIDManager: Estraendo chiave pubblica dal DID Document.")
+        if 'verificationMethod' not in did_document:
+            raise ValueError("DID Document non contiene 'verificationMethod'.")
+        
+        for method in did_document['verificationMethod']:
+            # Cerca la chiave basandosi sull'ID completo
+            # o semplicemente prende la prima chiave disponibile se key_id è None
+            if key_id and method.get('id') == key_id or not key_id:
+                if 'publicKeyPem' in method:
+                    pem_bytes = method['publicKeyPem'].encode('utf-8')
+                    try:
+                        public_key = serialization.load_pem_public_key(
+                            pem_bytes,
+                            backend=default_backend()
+                        )
+                        print(f"  DIDManager: Chiave pubblica '{method.get('id', 'N/A')}' caricata con successo.")
+                        return public_key
+                    except Exception as e:
+                        print(f"  DIDManager: ERRORE caricamento chiave pubblica dal PEM: {e}")
+                        raise
+        raise ValueError(f"Chiave pubblica con ID '{key_id}' non trovata nel DID Document o formato non supportato.")
+
+
+    """ 
     def get_public_key_from_did_document(self, did_document: dict) -> str | None:
-        """
-        Estrae la chiave pubblica in formato PEM da un DID Document.
-        :param did_document: Il DID Document.
-        :return: La chiave pubblica in formato PEM (stringa) o None se non trovata.
-        """
         if 'verificationMethod' in did_document and len(did_document['verificationMethod']) > 0:
             # Assumiamo che la prima verificationMethod contenga la chiave principale
             for vm in did_document['verificationMethod']:
                 if 'publicKeyPem' in vm:
                     return vm['publicKeyPem']
-        return None
+        return None 
+    """
 
 
-    def get_x509_certificate_from_did_document(self, did_document):
+    def get_x509_certificate_from_did_document(self, did_document: dict):
         """
-        Recupera un certificato X.509 da un DID Document, assumendo sia in un serviceEndpoint.
+        Recupera un certificato X.509 da un DID Document già parsato (dizionario Python).
+        
+        :param did_document: Il DID Document come dizionario Python.
+        :return: L'oggetto x509.Certificate se trovato, altrimenti None.
         """
+        print("DIDManager: Tentativo di recuperare certificato X.509 dal DID Document.")
+        
+        # Ci aspettiamo che did_document sia già un dizionario Python.
+        if not isinstance(did_document, dict):
+            print("DIDManager: ERRORE: L'input non è un dizionario DID Document valido.")
+            return None
+
+        # Accediamo direttamente alla chiave 'service'
         if 'service' in did_document:
+            print('DIDManager: Chiave "service" trovata nel DID Document.')
             for service in did_document['service']:
-                # Controlliamo il tipo e la presenza di 'certificatePem'
-                if service.get('type') == 'X509CertificateService' and 'certificatePem' in service.get('serviceEndpoint', {}):
+                # Controlla il tipo di servizio e il formato del certificato
+                if service.get('type') == 'X509CertificateService' and \
+                   'serviceEndpoint' in service and \
+                   'certificatePem' in service['serviceEndpoint']:
+                    
                     cert_pem = service['serviceEndpoint']['certificatePem']
                     try:
-                        return x509.load_pem_x509_certificate(cert_pem.encode(), default_backend())
+                        print("DIDManager: Trovato certificato X.509 in formato PEM. Caricamento in corso...")
+                        # Decodifica la stringa PEM in bytes e carica il certificato
+                        return x509.load_pem_x509_certificate(cert_pem.encode('utf-8'), default_backend())
                     except Exception as e:
-                        print(f"Error loading X.509 certificate from DID Document: {e}")
-        return None
+                        print(f"DIDManager: ERRORE durante il caricamento del certificato X.509 dal DID Document: {e}")
+                        return None # Errore nel caricamento del certificato specifico
+            print("DIDManager: Nessun servizio di tipo 'X509CertificateService' valido trovato nel DID Document.")
+        else:
+            print('DIDManager: Chiave "service" NON trovata nel DID Document.')
 
+        return None
     
     def get_public_key_object_from_pem(self, public_key_pem: str):
         """

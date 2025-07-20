@@ -25,7 +25,8 @@ class Student:
         return self.name
 
     def create_wallet(self):
-        self.wallet = Wallet(student_did = self.did, 
+        self.wallet = Wallet(student_name = self.name,
+                            student_did = self.did, 
                             student_did_document = self.did_document, 
                             student_public_key=self.public_key, 
                             student_private_key=self.private_key, 
@@ -60,6 +61,26 @@ class Student:
             return None
 
 
+    def verify_requested_credential(self, credential):
+        """
+        Verifica che la Verifiable Credential (VC) ricevuta dall'Issuer sia corretta,
+        controllando l'integrità degli attributi tramite la Merkle Root e la sua firma digitale.
+        La Merkle Root è calcolata dagli attributi e confrontata con quella firmata dall'Issuer
+        per garantire autenticità e integrità.
+        """
+        integrity_check = self.wallet.verify_credential(credential)
+        
+        if integrity_check:
+            print('La credenziale ricevuta non è compromessa')
+            return True
+        else:
+            print('La credenziale ricevuta è compromessa')
+            return False
+            
+        
+        
+        
+        
     def send_vp(self):
         if self.wallet is None:
             print(f"Lo studente {self.name} non possiede un wallet da cui creare una VP")

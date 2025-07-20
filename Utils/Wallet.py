@@ -4,15 +4,18 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
 import datetime
 import json
+import base64
 
 
 class Wallet:
-    def __init__(self, student_did, student_did_document, student_public_key, student_private_key, issuer, verifier, ae, accreditation_registry, did_manager):
+    def __init__(self, student_name, student_did, student_did_document, student_public_key, student_private_key, issuer, verifier, ae, accreditation_registry, did_manager):
         self.entity_name = "Wallet_" + str(uuid.uuid4())
         self.credential = None
         self.student_did = student_did
+        self.student_name = student_name
         self.student_did_document = student_did_document
         self.student_public_key = student_public_key
         self.student_private_key = student_private_key
@@ -98,7 +101,7 @@ class Wallet:
         
         # 1. Risolvere il DID dell'Issuer per ottenere il suo DID Document
         # Questo DID Document dovrebbe contenere il certificato X.509 dell'Issuer.
-        issuer_did_document = self.did_manager.resolve_did(issuer_did, 'Student')
+        issuer_did_document = self.did_manager.resolve_did(issuer_did, 'Issuer')
         if not issuer_did_document:
             print(f"   Wallet: Errore: Impossibile risolvere il DID dell'Issuer: {issuer_did}. Richiesta abortita.")
             return False
@@ -156,16 +159,177 @@ class Wallet:
             ca_public_key.verify(
                 certificate_to_verify.signature,
                 certificate_to_verify.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                hashes.SHA256()
+            )
+
+            print("Wallet: X.509: Certificato verificato con successo (valido e firmato dalla CA).")
+            return True
+
+        except Exception as e:
+            print(f"Wallet: X.509: Errore durante la verifica del certificato: {e}")
+            return False
+        
+        
+    def verify_credential(self, credential: dict) -> bool:
+        """
+        Verifica l'integrità e l'autenticità di una Credenziale Verificabile.
+        
+        :param credential: La Credenziale Verificabile come dizionario Python.
+        :return: True se la credenziale è valida e integra, False altrimenti.
+        """
+        
+        print(f"\n{self.student_name} Inizio verifica della Credenziale.")
+
+        # 1. Verifica la struttura di base della credenziale
+        if not all(k in credential for k in ['credentialSubject', 'proof', 'issuer', 'issuanceDate', 'type']):
+            print(f"{self.student_name}: ERRORE: La credenziale manca di campi essenziali.")
+            return False
+        
+        if 'merkleRoot' not in credential['proof']:
+            print(f"{self.student_name}: ERRORE: La proof della credenziale manca della Merkle Root.")
+            return False
+
+        # 2. Recupera la Merkle Root dalla credenziale
+        merkle_root_from_credential_b64 = credential['proof']['merkleRoot']
+        try:
+            merkle_root_from_credential_bytes = base64.b64decode(merkle_root_from_credential_b64)
+            print(f"{self.student_name}: Merkle Root letta dalla credenziale: {merkle_root_from_credential_b64}")
+        except Exception as e:
+            print(f"{self.student_name}: ERRORE: Impossibile decodificare la Merkle Root dalla credenziale (Base64): {e}")
+            return False
+
+        # 3. Ricalcola le foglie del Merkle Tree dal credentialSubject
+        credential_subject_data = credential['credentialSubject']
+        recalculated_merkle_leaves = []
+        sorted_keys = sorted(credential_subject_data.keys())
+        
+        for key in sorted_keys:
+            value = credential_subject_data[key]
+            leaf_content = {key: value}
+            # Assicurati di usare la stessa funzione di canonizzazione dell'Issuer
+            leaf_data_str = self._canonical_json_dump(leaf_content)
+            
+            hasher = hashes.Hash(hashes.SHA256(), backend=default_backend())
+            hasher.update(leaf_data_str.encode('utf-8'))
+            recalculated_merkle_leaves.append(hasher.finalize())
+        
+        print(f"{self.student_name}: Foglie Merkle ricalcolate per {len(recalculated_merkle_leaves)} attributi.")
+
+        # 4. Ricalcola la Merkle Root
+        try:
+            recalculated_merkle_tree = self._build_merkle_tree(recalculated_merkle_leaves)
+            recalculated_merkle_root_bytes = recalculated_merkle_tree[0]
+            recalculated_merkle_root_b64 = base64.b64encode(recalculated_merkle_root_bytes).decode('utf-8')
+            print(f"{self.student_name}: Merkle Root ricalcolata: {recalculated_merkle_root_b64}")
+            
+        except Exception as e:
+            print(f"{self.student_name}: ERRORE: Impossibile ricalcolare la Merkle Root: {e}")
+            return False
+
+        # 5. Confronta la Merkle Root ricalcolata con quella presente nella credenziale
+        if recalculated_merkle_root_bytes != merkle_root_from_credential_bytes:
+            print(f"{self.student_name}: VERIFICA FALLITA: La Merkle Root ricalcolata NON CORRISPONDE a quella nella credenziale. L'integrità è compromessa!")
+            return False
+        
+        print(f"{self.student_name}: VERIFICA SUPERATA: La Merkle Root ricalcolata CORRISPONDE a quella nella credenziale. Integrità della credenziale OK.")
+
+        # --- Ulteriori Passaggi di Verifica (Cruciali per una verifica completa) ---
+        
+        # --- Punto 6: Verifica la firma dell'Issuer (Autenticità) ---
+        print(f"\n{self.student_name}: Eseguo verifica della firma dell'Issuer.")
+        try:
+            issuer_did = credential['issuer']['id']
+            # Risolvi il DID dell'Issuer per ottenere il DID Document
+            issuer_did_document = self.did_manager.resolve_did(issuer_did, 'Issuer')
+            print("\n\n\n\n\n\n");print(issuer_did_document);print('\n\n\n\n\n')
+            # Estrai l'ID della chiave di verifica dalla proof
+            verification_method_id = credential['proof']['verificationMethod']
+            
+            # Estrai la chiave pubblica dell'Issuer dal DID Document
+            issuer_public_key = self.did_manager.get_public_key_from_did_document(issuer_did_document, key_id=verification_method_id)
+            
+            # Recupera la firma dalla credenziale
+            signature_b64 = credential['proof']['signatureValue']
+            signature_bytes = base64.b64decode(signature_b64)
+
+            # Verifica la firma usando la chiave pubblica dell'Issuer sulla Merkle Root
+            if not self._verify_signature(issuer_public_key, merkle_root_from_credential_bytes, signature_bytes):
+                print(f"{self.student_name}: VERIFICA FALLITA: La firma dell'Issuer NON è valida. Autenticità compromessa!")
+                return False
+            
+            print(f"{self.student_name}: VERIFICA SUPERATA: Firma dell'Issuer validata. Autenticità OK.")
+            return True
+
+        except Exception as e:
+            print(f"{self.student_name}: ERRORE: Fallimento durante la verifica della firma dell'Issuer: {e}")
+            return False
+        
+        
+        
+    # --- Funzione per la Verifica della Firma (utilizzata nel punto 7) ---
+    def _verify_signature(self, public_key, signed_data: bytes, signature_bytes: bytes) -> bool:
+        """
+        Verifica una firma RSA-PSS.
+        Questa funzione deve corrispondere all'algoritmo di firma usato dall'Issuer (_sign_data).
+        """
+        try:
+            public_key.verify(
+                signature_bytes,
+                signed_data,
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
                     salt_length=padding.PSS.MAX_LENGTH
                 ),
                 hashes.SHA256()
             )
-
-            print("   Wallet: X.509: Certificato verificato con successo (valido e firmato dalla CA).")
             return True
-
         except Exception as e:
-            print(f"   Wallet: X.509: Errore durante la verifica del certificato: {e}")
+            print(f"  Wallet: ERRORE durante la verifica della firma: {e}")
             return False
+        
+        
+    def _build_merkle_tree(self, leaves):
+        """Costruisce un Merkle Tree da una lista di hash di foglie."""
+        if not leaves:
+            return []
+        
+        # Ensures there's an even number of leaves by duplicating the last one if odd
+        if len(leaves) % 2 != 0:
+            leaves.append(leaves[-1]) 
+
+        tree = list(leaves) # Initialize the first level of the tree with leaves
+        
+        # Process levels until only one root hash remains
+        while len(tree) > 1:
+            next_level = []
+            # Hash pairs of nodes from the current level
+            for i in range(0, len(tree), 2):
+                # Concatenate hashes and then hash the concatenation
+                combined_hash = hashes.Hash(hashes.SHA256(), backend=default_backend())
+                combined_hash.update(tree[i] + tree[i+1])
+                next_level.append(combined_hash.finalize())
+            
+            tree = next_level # Move to the next level
+            
+            # If the next level has an odd number of nodes, duplicate the last one
+            if len(tree) % 2 != 0 and len(tree) > 1:
+                tree.append(tree[-1])
+        
+        return tree 
+    
+    
+    def _canonical_json_dump(self, data):
+        # Funzione ricorsiva per creare una stringa JSON canonica per l'hashing
+        if isinstance(data, dict):
+            return json.dumps({k: self._canonical_json_dump(data[k]) for k in sorted(data.keys())}, separators=(',', ':'))
+        elif isinstance(data, list):
+            return '[' + ','.join(self._canonical_json_dump(item) for item in data) + ']'
+        elif isinstance(data, bool):
+            return 'true' if data else 'false'
+        elif data is None:
+            return 'null'
+        elif isinstance(data, (int, float)):
+            return str(data)
+        else:
+            return json.dumps(data) # Per stringhe, per gestire correttamente i caratteri speciali

@@ -91,7 +91,7 @@ class AE:
         # 4. Inviare la transazione all'AccreditationRegistry con il DID Document aggiornato
         outcome = self.accreditation_registry.accredit_entity(
             caller_did=self.did, 
-            target_did=updated_did_document, # Questo DID Document ora ha il cert X.509
+            target_did_document=updated_did_document, # Questo DID Document ora ha il cert X.509
             entity_type=entity_type,
         )
         

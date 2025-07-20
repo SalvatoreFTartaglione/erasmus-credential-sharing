@@ -46,7 +46,7 @@ class StudentDIDRegistry:
         print(f"[StudentDIDRegistry] Richiesta recupero DID Document per lo studente: {did}")
         did_document = self.student_did_documents.get(did)
         if did_document:
-            # print(f"[StudentDIDRegistry] DID Document per {did} recuperato con successo.")
+            print(f"[StudentDIDRegistry] DID Document per {did} recuperato con successo.")
             return did_document
         else:
             print(f"[StudentDIDRegistry] DID Document per lo studente {did} non trovato nel registro.")

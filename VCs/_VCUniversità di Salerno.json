@@ -3,24 +3,24 @@
     "https://www.w3.org/2025/credentials/v1",
     "https://www.w3.org/2025/credentials/examples/v1"
   ],
-  "id": "urn:uuid:153015683281416732312214004785926770754052389743",
+  "id": "urn:uuid:396614199994734907826633625973268301976045892291",
   "type": [
     "VerifiableCredential",
     "AccreditationCredential"
   ],
-  "issuer": "did:entediaccreditamento:2cabeaa73d8f482c87d8e6fad467d3b0",
-  "issuanceDate": "2025-07-20T14:45:09.408150+00:00Z",
+  "issuer": "did:entediaccreditamento:9e1db4c11a55435497b09c3c35dba220",
+  "issuanceDate": "2025-07-20T19:42:54.292956+00:00Z",
   "credentialSubject": {
-    "id": "did:universitàdisalerno:5729d3ff44e640f2b0406728c840863c",
+    "id": "did:universitàdisalerno:bc1d9e29e34b4a6b815b184ad4f58002",
     "type": "Verifier",
     "accreditationStatus": "Accredited",
     "accreditationAuthority": "Ente di Accreditamento"
   },
   "proof": {
     "type": "RsaSignature2025",
-    "created": "2025-07-20T14:45:09.408150+00:00Z",
-    "verificationMethod": "did:entediaccreditamento:2cabeaa73d8f482c87d8e6fad467d3b0#keys-1",
+    "created": "2025-07-20T19:42:54.292956+00:00Z",
+    "verificationMethod": "did:entediaccreditamento:9e1db4c11a55435497b09c3c35dba220#keys-1",
     "proofPurpose": "assertionMethod",
-    "signatureValue": "agQYe6/usDCCcEESb6D1ijZ1nyk5UiWAPxupDLJLxMZaJffyQnAbTj52oymuM+dV+/ObkiDznPQncP7in+9yc7evMGlTGVHvpOR9xnafgUy9fMzckZh8mpSX2KOC9b2bA749N/LOCt7aVECboGyytHphxspEFgxs7+LmV4QkrlRWTey4Qua/AMX/TIxf6/F33QiYBA3iNe2GgnLK4q3QULih0BbLraT8Wlpiud8yPkwpo6uyMnh5Uu1y15WBTkQhCWKmyMWkEGF8Kd94InbkL+vmvdIpYH47dVh4ddTBUQU0hy319329d5Uw2wwFl2s1tQjvwOlZp9qyc+laU1br1g=="
+    "signatureValue": "OMpJ9aC2pJgTJYK6uhEGsKQmUCxE9fhUlYa20Jt03Xuh7yv0ZfdiXrJzu/HYOelEbOrzmYcKeRFN2TsDLhCslhOwD8oGV0BM95Si0klTo5DJxB3LGbfTotu/RxT79XU76koprwiQO1ngBOIuXr4Dr7ti4oNfLqF6ZQsp+5uHeIVzzEcgvoiGhPQlRrMlPj0XZVNmRWLO2if1sCCPRP6gq4jsECDV+cWLfDRsDICEy7p45f0e15IMUqZ3aYmqw+vSvMllxy4A58ucePbdwIEAwLbgTv1zboimmgB4pYqYgFpYlFKGHYXcgkcQLYGmK3ZAwfx+JzSmq4bzCTSRg3s5/A=="
   }
 }
