@@ -52,6 +52,7 @@ class Issuer:
             # rilascia una credenziale
             credential_hash = None
             self.credential_registry.register_credential(credential_hash=credential_hash, issuer_did=self.did)
+            
 
     # def request_credential(self, subject_did):
     #     if not self.is_verified:
