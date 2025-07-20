@@ -46,7 +46,7 @@ class AccreditationRegistry:
         
         
         # print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
-        # print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
+        print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
         return True
 
     def get_accreditation_info(self, did):
@@ -57,3 +57,16 @@ class AccreditationRegistry:
 
     def list_accredited(self):
         return list(self.accredited_entities.keys())
+    
+    
+    def get_accreditation_status(self, did):
+        """
+        Restituisce lo stato di accreditamento di un'entità sulla DLT.
+        
+        :param did: Il DID dell'entità da verificare.
+        :return: Un dizionario con lo stato di accreditamento e altre informazioni, o None se non trovato.
+        """
+        if did in self.accredited_entities:
+            return True,
+        else:
+            return False,

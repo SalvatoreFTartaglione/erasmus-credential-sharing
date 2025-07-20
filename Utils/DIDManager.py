@@ -75,12 +75,14 @@ class DIDManager:
                 "id": f"{did}#accreditation-request-endpoint",
                 "type": "AccreditationRequestService",
                "serviceEndpoint": f"https://verify.{entity_name.lower().replace(' ', '').replace('à', 'a')}.org/request"
-            }]    
+            }]  
+        elif entity_type == "Student":
+            did_document["name"] = entity_name
             
         return did_document
     
     
-    def resolve_did(did, did_type):
+    def resolve_did(self, did, did_type):
         """
         Risolve un DID per recuperare il suo DID Document corrispondente dalla DLT.
         Questo metodo interroga lo smart contract AccreditationRegistry sulla DLT.
@@ -124,19 +126,22 @@ class DIDManager:
         return None
 
 
-    def get_x509_certificate_from_did_document(self, did_document: dict) -> str | None:
+    def get_x509_certificate_from_did_document(self, did_document):
         """
-        Estrae il certificato X.509 in formato PEM da un DID Document (se presente nel service endpoint).
-        :param did_document: Il DID Document.
-        :return: Il certificato X.509 in formato PEM (stringa) o None se non trovato.
+        Recupera un certificato X.509 da un DID Document, assumendo sia in un serviceEndpoint.
         """
         if 'service' in did_document:
             for service in did_document['service']:
-                if service.get('type') == 'X509CertificateService' and 'serviceEndpoint' in service:
-                    return service['serviceEndpoint'].get('certificatePem')
+                # Controlliamo il tipo e la presenza di 'certificatePem'
+                if service.get('type') == 'X509CertificateService' and 'certificatePem' in service.get('serviceEndpoint', {}):
+                    cert_pem = service['serviceEndpoint']['certificatePem']
+                    try:
+                        return x509.load_pem_x509_certificate(cert_pem.encode(), default_backend())
+                    except Exception as e:
+                        print(f"Error loading X.509 certificate from DID Document: {e}")
         return None
 
-
+    
     def get_public_key_object_from_pem(self, public_key_pem: str):
         """
         Converte una chiave pubblica PEM (stringa) in un oggetto chiave pubblica per cryptography.

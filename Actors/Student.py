@@ -4,7 +4,7 @@ import os
 import random
 
 class Student:
-    def __init__(self, name, did_manager, student_did_registry, issuer, verifier):
+    def __init__(self, name, did_manager, student_did_registry, issuer, verifier, ae, accreditation_registry):
         self.name = name
         self.entity_type = "Student"
         self.did_manager = did_manager
@@ -18,6 +18,8 @@ class Student:
         self.verifier = verifier
         self.email = None
         self.password = None
+        self.ae = ae
+        self.accreditation_registry = accreditation_registry
 
     def get_name(self):
         return self.name
@@ -28,17 +30,35 @@ class Student:
                             student_public_key=self.public_key, 
                             student_private_key=self.private_key, 
                             issuer=self.issuer,
-                            verifier=self.verifier
+                            verifier=self.verifier,
+                            ae=self.ae,
+                            did_manager=self.did_manager,
+                            accreditation_registry=self.ae.accreditation_registry
                             )
 
     def get_wallet(self):
         return self.wallet if self.wallet else None
 
-    def credential_request(self):
+    def request_credential(self):
+        """Metodo che simula la richiesta di una credenziale all'Issuer da parte dello 
+        Studente tramite il suo Wallet il quale chiama il quale si occupa di mandare 
+        la richiesta effettiva all'Issuer che poi la gestisce.
+        return: La credenziale ricevuta dall'Issuer, se la richiesta ha successo.
+                altrimenti ritorna None"""
         if self.wallet is None:
-            print(f"Lo studente {self.name} non possiede un wallet in cui salvare successivamente la credenziale")
-            return
-        self.wallet.request_credential_to_Issuer(self.did)
+            print(f"Lo studente {self.name} non possiede un wallet in cui salvare la credenziale")
+            return None
+        
+        # Richiedi la credenziale all'Issuer tramite il Wallet
+        success, credential = self.wallet.request_credential_to_Issuer(self.did)
+        
+        if success:
+            print(f"Credenziale richiesta con successo per {self.name}.")
+            return credential
+        else:
+            print(f"Errore nella richiesta della credenziale per {self.name}.")
+            return None
+
 
     def send_vp(self):
         if self.wallet is None:

@@ -109,10 +109,13 @@ def init_actors():
     print("\n##########################################################")
     print('\n')
 
-    student = Student(name ="Salvatore", 
+    student = Student(name ="Clitian Rosa", 
                         did_manager=did_manager, 
                         student_did_registry=student_did_registry, 
-                        issuer=issuer, verifier=verifier
+                        issuer=issuer, 
+                        verifier=verifier,
+                        ae=ae,
+                        accreditation_registry=accreditation_registry
                         )
     print(f"\nStudente {student.get_name()} creato con successo")
 
@@ -174,11 +177,20 @@ def menu_principale(student):
         if choice == "1":
             print("MENU CREDENZIALE")
             string = input("Immettere la password per avviare il processo di richiesta della credenziale all'università ospitante\npassword: ")
-            while string != student.get_password():
+            
+            """ while string != student.get_password():
                 print("Password errata. Riprova.")
-                string = input("password: ")
+                string = input("password: ") """
+                
             print("Password corretta.")
+            
             print("Sto inviando una richiesta di credenziale all'università ospitante.\n")
+            
+            credential = student.request_credential()
+            if credential is not None:
+                print("Credenziale ricevuta con successo.")
+            elif credential is None:
+                print("Errore nella richiesta della credenziale.")
         else:
             menu_presentazione(student)
 
@@ -223,7 +235,7 @@ def run_simulation(actors):
     verifier = actors["verifier"]
     student = actors["student"]
 
-    print("Inserire le credenziali per accedere al wallet personale")
+    """ print("Inserire le credenziali per accedere al wallet personale")
     email = input("Email: ")
     password = input("Password: ")
 
@@ -251,7 +263,7 @@ def run_simulation(actors):
                 exit(1)
             print("OTP errato. Riprova.")
             time.sleep(wait_time)
-            wait_time *= 2
+            wait_time *= 2 """
 
     print("\n#############################################################")
     print(f"\n#          Autenticazione avvenuta con successo!           #")
