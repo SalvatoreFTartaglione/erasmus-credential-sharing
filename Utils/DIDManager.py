@@ -2,8 +2,9 @@ import uuid
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography import x509
-import json
 from cryptography.hazmat.backends import default_backend
+import json
+
 
 class DIDManager:
     def __init__(self, accreditation_registry, credential_status_registry, student_did_registry):
@@ -88,6 +89,7 @@ class DIDManager:
         """
         Risolve un DID per recuperare il suo DID Document corrispondente dalla DLT.
         Questo metodo interroga lo smart contract AccreditationRegistry o StudentDIDRegistry sulla DLT.
+        :param did_type:
         :param did: Il DID da risolvere.
         :param did_type: Il tipo del caller (Issuer/Verifier/Student) per capire su quale registry operare.
         :return: Il DID Document associato al DID (come dizionario Python), o None se non trovato.
@@ -101,7 +103,7 @@ class DIDManager:
                 retrieved_data = self.student_did_registry.get_did_document(did)
             else:
                 return None
-            
+
             did_document = None
             if retrieved_data:
                 if isinstance(retrieved_data, dict) and 'did_document_json' in retrieved_data:
@@ -113,9 +115,9 @@ class DIDManager:
                 elif isinstance(retrieved_data, dict):
                     # Se è già il DID Document come dizionario Python
                     did_document = retrieved_data
-            
+
             return did_document
-        
+
         except AttributeError:
             # ERRORE: L'oggetto registry non ha il metodo get_did_document o attributo non valido.
             return None
@@ -133,7 +135,7 @@ class DIDManager:
         print(f"DIDManager: Estraendo chiave pubblica dal DID Document.")
         if 'verificationMethod' not in did_document:
             raise ValueError("DID Document non contiene 'verificationMethod'.")
-        
+
         for method in did_document['verificationMethod']:
             # Cerca la chiave basandosi sull'ID completo
             # o semplicemente prende la prima chiave disponibile se key_id è None
@@ -167,12 +169,12 @@ class DIDManager:
     def get_x509_certificate_from_did_document(self, did_document: dict):
         """
         Recupera un certificato X.509 da un DID Document già parsato (dizionario Python).
-        
+
         :param did_document: Il DID Document come dizionario Python.
         :return: L'oggetto x509.Certificate se trovato, altrimenti None.
         """
         print("DIDManager: Tentativo di recuperare certificato X.509 dal DID Document.")
-        
+
         # Ci aspettiamo che did_document sia già un dizionario Python.
         if not isinstance(did_document, dict):
             print("DIDManager: ERRORE: L'input non è un dizionario DID Document valido.")
@@ -186,7 +188,7 @@ class DIDManager:
                 if service.get('type') == 'X509CertificateService' and \
                    'serviceEndpoint' in service and \
                    'certificatePem' in service['serviceEndpoint']:
-                    
+
                     cert_pem = service['serviceEndpoint']['certificatePem']
                     try:
                         print("DIDManager: Trovato certificato X.509 in formato PEM. Caricamento in corso...")
@@ -200,7 +202,7 @@ class DIDManager:
             print('DIDManager: Chiave "service" NON trovata nel DID Document.')
 
         return None
-    
+
     def get_public_key_object_from_pem(self, public_key_pem: str):
         """
         Converte una chiave pubblica PEM (stringa) in un oggetto chiave pubblica per cryptography.

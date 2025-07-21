@@ -61,7 +61,7 @@ def init_actors():
     ###############################
     #      INIT SYSTEM ACTORS     #
     ###############################
-    
+
     # Initialize the AE (Accreditation Entity)
     print("\n#######################################################")
     print("\n #  Inizializzazione dell\'Accreditation Entity (AE)      #")
@@ -95,7 +95,7 @@ def init_actors():
     print("\n##########################################################")
     print("\n# Inizializzazione dell\'Verifier (Università di Salerno) #")
     print("\n##########################################################\n")
-    verifier = Verifier("Università di Salerno", ae, did_manager=did_manager)
+    verifier = Verifier("Università di Salerno", ae, did_manager=did_manager,accreditation_registry=accreditation_registry, status_registry=credential_status_registry)
     # Logica che accredita il Verifier
     if verifier.accredit_request():
         print("\n---------------------------------------------------------")
@@ -104,7 +104,7 @@ def init_actors():
         print('\n')
     else:
         print("\n---------------------------------------------------------")
-        print("\n-          Verifier non accreditato                       -")   
+        print("\n-          Verifier non accreditato                       -")
         print("\n---------------------------------------------------------")
         print('\n')
 
@@ -128,7 +128,7 @@ def init_actors():
     print(f"\n#        Creazione delle credenziali                  #")
     print("\n########################################################")
     student.create_email_and_password()
-    
+
     # Return the initialized actors
     return {
         "dlt": dlt,
@@ -138,7 +138,7 @@ def init_actors():
         "ae": ae,
         "issuer": issuer,
         "verifier": verifier,
-        "student": student,
+        "student": student
     }
 
 
@@ -165,11 +165,23 @@ def checkInput(lista_utente, lista_esami):
     if id_non_presenti:
         return False, id_non_presenti
 
-    return True, []
+    return True, user_ids
 
-def menu_principale(student):
+
+def menu_principale(student, verifier, issuer):
+    # credential = student.request_credential()
+    # print(credential)
+    # integrity_check = student.verify_requested_credential(credential)
+    # if integrity_check:
+    #     print('GESU CRISTO POSSIAMO ANDARE AVANTI ')
+    #     student.get_wallet().set_credential(credential)
+    # if credential is None:
+    #     print("Nessuna credenziale trovata.")
+    #     return []
+    # lista_id = [1,2]
+    # student.send_vp(lista_id, verifier.get_public_key())
     while True:
-        print(f"Benvenuto nel tuo wallet {student.get_name()}.")
+        print(f"\nBenvenuto nel tuo wallet {student.get_name()}.")
         print("[1] Per ottenere la credenziale")
         print("[2] Per passare alla modalità di generazione della presentazione")
         choice = input("")
@@ -180,61 +192,102 @@ def menu_principale(student):
 
         if choice == "1":
             print("MENU CREDENZIALE")
-            string = input("Immettere la password per avviare il processo di richiesta della credenziale all'università ospitante\npassword: ")
-            
-            """ while string != student.get_password():
+            string = input(
+                "Immettere la password per avviare il processo di richiesta della credenziale all'università ospitante\npassword: ")
+
+            while string != student.get_password():
                 print("Password errata. Riprova.")
-                string = input("password: ") """
-                
+                string = input("password: ")
+
             print("Password corretta.")
-            
             print("Sto inviando una richiesta di credenziale all'università ospitante.\n")
-            
+
             # Requesting VC from the issuer
             credential = student.request_credential()
-            
+
             if credential is not None:
-                print("Credenziale ricevuta con successo.")
+                print(f"Credenziale ricevuta con successo.\n{credential}")
                 # Verifica dell'integrità della credenziale tramite il controlla della merkle root
                 integrity_check = student.verify_requested_credential(credential)
                 if integrity_check:
                     print('GESU CRISTO POSSIAMO ANDARE AVANTI ')
-                    # IMPLEMENTARE CODICE PER GENERARE LA VP E MANDARLA AL VERIFIER
-                    pass
+                    student.get_wallet().set_credential(credential)
                 else:
                     print('La verifica della credenziale ha avuto ESITO NEGATIVO')
-                    
+
             elif credential is None:
                 print("Errore nella richiesta della credenziale.")
-                
-        else:
-            menu_presentazione(student)
 
-def menu_presentazione(student):
+        else:
+            menu_presentazione(student, verifier, issuer)
+
+def extract_exam_id(credential):
+    """
+    Estrae e stampa il titolo degli esami dalla credenziale.
+    Poiché non è presente un ID esplicito, genera un ID progressivo a partire da 1.
+    Ritorna una lista di ID come interi.
+    """
+    if credential is None:
+        print("Nessuna credenziale trovata.")
+        return []
+
+    exam_list = []
+    exam_counter = 1
+
+    credential_subject = credential.get("credentialSubject", {})
+
+    # Esami del learning agreement
+    agreed_courses = credential_subject.get("learningAgreement", {}).get("agreedCourses", [])
+    for course in agreed_courses:
+        title = course.get("title", "Sconosciuto")
+        print(f"{title} ; {exam_counter}")
+        exam_list.append(exam_counter)
+        exam_counter += 1
+
+    # Esami opzionali
+    optional_courses = credential_subject.get("optionalExperience", {}).get("optionalCourses", [])
+    for course in optional_courses:
+        title = course.get("title", "Sconosciuto")
+        print(f"{title} ; {exam_counter}")
+        exam_list.append(exam_counter)
+        exam_counter += 1
+
+    return exam_list
+
+
+
+
+
+def menu_presentazione(student, verifier, issuer):
     print("MENU PRESENTAZIONE")
-    print("Digitare '-1' se si vuole tornare indietro, altrimenti immettere gli identificativi degli esami, separati da ';'")
+    credential = student.get_wallet().get_credential()
+    if credential is None:
+        print("Non è presente alcuna credenziale in questo wallet...")
+        return
+    print("Digitare '-1' se si vuole tornare indietro, altrimenti immettere gli identificativi degli esami che si "
+          "vogliono presentare, separati da ';'")
     print("ESAMI;ID")
-    # stampa degli esami con id
-    lista_esami = [1, 2, 3, 4, 5]  # Id degli esami
+    lista_esami = extract_exam_id(credential)
+    print(lista_esami)
 
     while True:
         user_input = input("")
         if user_input == "-1":
-            return  # torna al menu principale
+            return
 
-        verified, lista_di_id_sbagliati = checkInput(user_input, lista_esami)
+        verified, lista_id = checkInput(user_input, lista_esami)
         while not verified:
-            if len(lista_di_id_sbagliati) != 0:
-                print(f"Gli id {lista_di_id_sbagliati} non sono presenti nella lista degli esami. Riprova.")
+            if len(lista_id) != 0:
+                print(f"Gli id {lista_id} non sono presenti nella lista degli esami. Riprova.")
             else:
                 print("Formato sbagliato, ogni id deve essere separato da ';'. Riprova.")
             user_input = input("")
             if user_input == "-1":
                 return
-            verified, lista_di_id_sbagliati = checkInput(user_input, lista_esami)
+            verified, lista_id = checkInput(user_input, lista_esami)
 
         # Se verified è True
-        print("Input valido. Procedo con la generazione della presentazione.")
+        student.send_vp(lista_id, verifier.get_public_key())
         break
 
 
@@ -251,7 +304,7 @@ def run_simulation(actors):
     verifier = actors["verifier"]
     student = actors["student"]
 
-    """ print("Inserire le credenziali per accedere al wallet personale")
+    print("Inserire le credenziali per accedere al wallet personale")
     email = input("Email: ")
     password = input("Password: ")
 
@@ -279,7 +332,7 @@ def run_simulation(actors):
                 exit(1)
             print("OTP errato. Riprova.")
             time.sleep(wait_time)
-            wait_time *= 2 """
+            wait_time *= 2
 
     print("\n#############################################################")
     print(f"\n#          Autenticazione avvenuta con successo!           #")
@@ -293,7 +346,7 @@ def run_simulation(actors):
         exit(1)
 
     student.send_public_key_to_issuer()
-    menu_principale(student)
+    menu_principale(student, verifier, issuer)
 
 
 
@@ -305,4 +358,3 @@ if __name__ == "__main__":
 
     actors = init_actors()
     run_simulation(actors)
-    

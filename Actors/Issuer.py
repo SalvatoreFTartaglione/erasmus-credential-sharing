@@ -113,7 +113,8 @@ class Issuer:
                         "ects": 9,
                         "status": "Superato",
                         "grade": grade, # Use passed grade
-                        "honor": False
+                        "honor": False,
+                        "id" : 1
                     },
                     {
                         "title": "Automation",
@@ -121,7 +122,8 @@ class Issuer:
                         "ects": 9,
                         "status": "Superato",
                         "grade": "30/30",
-                        "honor": True
+                        "honor": True,
+                        "id" : 2
                     },
                     {
                         "title": "Design and Analysis of Algorithms",
@@ -129,7 +131,8 @@ class Issuer:
                         "ects": 9,
                         "status": "Non Superato",
                         "grade": None,
-                        "honor": False
+                        "honor": False,
+                        "id" : 3
                     },
                     {
                         "title": "Machine Learning",
@@ -137,7 +140,8 @@ class Issuer:
                         "ects": 9,
                         "status": "Non Svolto",
                         "grade": None,
-                        "honor": False
+                        "honor": False,
+                        "id" : 4
                     },
                     {
                         "title": "Niveau de langue française - A2",
@@ -145,7 +149,8 @@ class Issuer:
                         "ects": 3,
                         "status": "Superato",
                         "grade": "Idoneo",
-                        "honor": False
+                        "honor": False,
+                        "id" : 5
                     }
                 ]
             },
@@ -160,7 +165,8 @@ class Issuer:
                         "ects": 9,
                         "status": "Non Svolto",
                         "grade": None,
-                        "honor": True
+                        "honor": True,
+                        "id" : 6
                     }
                 ]
             }
@@ -280,13 +286,13 @@ class Issuer:
         """Costruisce un Merkle Tree da una lista di hash di foglie."""
         if not leaves:
             return []
-        
+
         # Ensures there's an even number of leaves by duplicating the last one if odd
         if len(leaves) % 2 != 0:
-            leaves.append(leaves[-1]) 
+            leaves.append(leaves[-1])
 
         tree = list(leaves) # Initialize the first level of the tree with leaves
-        
+
         # Process levels until only one root hash remains
         while len(tree) > 1:
             next_level = []
@@ -296,13 +302,13 @@ class Issuer:
                 combined_hash = hashes.Hash(hashes.SHA256(), backend=default_backend())
                 combined_hash.update(tree[i] + tree[i+1])
                 next_level.append(combined_hash.finalize())
-            
+
             tree = next_level # Move to the next level
-            
+
             # If the next level has an odd number of nodes, duplicate the last one
             if len(tree) % 2 != 0 and len(tree) > 1:
                 tree.append(tree[-1])
-        
+
         return tree # The final element is the Merkle Root
 
 
@@ -361,11 +367,9 @@ class Issuer:
         
         return success
 
-    
-    
-    
-    
-    
+
+
+
     def add_public_key_of_student(self, encrypted_key, iv, ciphertext):
         aes_key = TLS.server_receive_tls_key(encrypted_key, TLS.load_private_key_from_pem(self.private_key))
         plaintext = TLS.decrypt_message_aes(aes_key, iv, ciphertext)
@@ -388,4 +392,10 @@ class Issuer:
 
     def get_public_key(self):
         return self.public_key
+
+    def get_private_key(self):
+        return self.private_key
+
+    def get_did(self):
+        return self.did
 

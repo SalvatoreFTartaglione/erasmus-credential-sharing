@@ -14,11 +14,11 @@ class AccreditationRegistry:
     def accredit_entity(self, caller_did, target_did_document, entity_type):
         # Controllo se il chiamante è l'ente di accreditamento
         if caller_did != self.accrediting_authority_did:
-            #print(f"[AccreditationRegistry] ERRORE: {caller_did} non è autorizzato ad accreditare.")
+            # print(f"[AccreditationRegistry] ERRORE: {caller_did} non è autorizzato ad accreditare.")
             return False
 
         did_str = target_did_document["id"]
-        #print(self.accredited_entities)
+        # print(self.accredited_entities)
         if did_str in self.accredited_entities:
             # print(f"[AccreditationRegistry] DID già accreditato: {did_str}")
             return False
@@ -44,16 +44,16 @@ class AccreditationRegistry:
             "entity_type": entity_type,           # Il tipo di entità (Issuer o Verifier)
             "timestamp": time.time()              # Quando è avvenuto l'accreditamento
         }
-        
+
         # add data onto the DLT
         self.dlt.add_block(block_data)
-        
+
         # print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
         # print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
         return True
-    
-    
-    # Essendo una simulazione per recuperare il did document di uno studente si usa un dizionario 
+
+
+    # Essendo una simulazione per recuperare il did document di uno studente si usa un dizionario
     # in locale invece di interagire con la blockchain.
     # In un sistema reale, questo metodo interagirebbe con la blockchain per recuperare i dati.
     def get_did_document(self, did: str) -> dict | None:
@@ -77,16 +77,32 @@ class AccreditationRegistry:
 
     def list_accredited(self):
         return list(self.accredited_entities.keys())
-    
-    
+
     def get_accreditation_status(self, did):
         """
-        Restituisce lo stato di accreditamento di un'entità sulla DLT.
-        
-        :param did: Il DID dell'entità da verificare.
-        :return: Un dizionario con lo stato di accreditamento e altre informazioni, o None se non trovato.
+        Restituisce lo stato di accreditamento e la chiave pubblica PEM dell'ente, se accreditato.
         """
-        if did in self.accredited_entities:
-            return True,
+        record = self.accredited_entities.get(did)
+        if record:
+            # Ricava il DID Document salvato in formato JSON
+            did_document = json.loads(record['did_document_json'])
+
+            # Estrai la chiave da verificationMethod
+            public_key_pem = None
+            methods = did_document.get('verificationMethod', [])
+            if isinstance(methods, list):
+                for method in methods:
+                    if 'publicKeyPem' in method:
+                        public_key_pem = method['publicKeyPem']
+                        break
+
+            return {
+                "status": "Accredited",
+                "publicKeyPem": public_key_pem
+            }
         else:
-            return False,
+            return {
+                "status": "NotRegistered",
+                "publicKeyPem": None
+            }
+

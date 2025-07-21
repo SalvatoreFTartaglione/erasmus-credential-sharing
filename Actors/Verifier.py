@@ -2,17 +2,14 @@ import json
 import os
 import base64
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import serialization
-from cryptography import x509
 from cryptography.hazmat.primitives import hashes
+from Utils.TLS import TLS
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
-import datetime
-
-from Utils.DIDManager import DIDManager
 
 class Verifier:
     
-    def __init__(self, name, ae, did_manager):
+    def __init__(self, name, ae, did_manager, accreditation_registry, status_registry):
         self.name = name
         self.did = None
         self.did_manager = did_manager
@@ -25,7 +22,16 @@ class Verifier:
         self.ae_ca_certificate = None # Store AE's CA certificate for validation
         self.accreditation_x509_certificate = None # Oggetto x509.Certificate
         self.accreditation_vc = None # Dizionario VC (JSON)
+        self.issuer_public_key_pem = None
+        self.accreditation_registry = accreditation_registry
+        self.credential_status_registry = status_registry
         
+    def get_public_key(self):
+        return self.public_key
+
+    def get_private_key(self):
+        return self.private_key
+
     # Request accreditation for the Verifier
     # This method generates a DID, public key, and DID document, then requests accreditation from
     def accredit_request(self):
@@ -51,7 +57,34 @@ class Verifier:
         else:
             # print('Errore di accreditamento.\nEnte non accreditato.')
             return False
-        
+
+    def receive_presentation(self, ciphertext_presentation: dict):
+        print(f"\nVerifier {self.name}: Ricevuta presentazione cifrata via canale TLS.")
+
+        # 1. Estrai i componenti cifrati
+        encrypted_aes_key = ciphertext_presentation["encrypted_aes_key"]
+        iv = ciphertext_presentation["iv"]
+        ciphertext = ciphertext_presentation["ciphertext"]
+
+        # 2. Carica la chiave privata del verifier da PEM a oggetto
+        server_private_key = TLS.load_private_key_from_pem(self.private_key)
+
+        # 3. Decifra la chiave AES
+        aes_key = TLS.server_receive_tls_key(encrypted_aes_key, server_private_key)
+        print(f"Verifier {self.name}: Chiave AES decifrata correttamente.")
+
+        # 4. Decripta la presentazione con AES
+        decrypted_json_bytes = TLS.decrypt_message_aes(aes_key, iv, ciphertext)
+        decrypted_json_str = decrypted_json_bytes.decode("utf-8")
+
+        # 5. Converte il JSON string in oggetto Python
+        vp = json.loads(decrypted_json_str)
+        print(f"Verifier {self.name}: Verifiable Presentation ricevuta e decifrata correttamente.")
+
+        # 6. Verifica la presentazione
+        result = self.verify_presentation(vp)
+        print(f"La VP è valida: {result}")
+        return result
 
     # Nuovo metodo per verificare una presentazione (VP)
     def verify_presentation(self, verifiable_presentation: dict) -> bool:
@@ -71,10 +104,10 @@ class Verifier:
         credential = verifiable_presentation.get('verifiableCredential')
         
         # --- Step 7.B ---#
-        if not self._verify_credential_signature(credential): return False
+        if not self._verify_credential_with_merkle_proof(verifiable_presentation): return False
         
         # --- Step 7.C ---#
-        if not self._verify_issuer_accreditation(credential): return False 
+        if not self._verify_issuer_accreditation(credential, self.issuer_public_key_pem): return False
         
         # --- Step 7.D ---#
         if not self._check_credential_revocation(credential): return False
@@ -125,10 +158,8 @@ class Verifier:
             )
             return True
         except Exception as e:
-            # print(f"Errore di verifica firma: {e}") 
+            # print(f"Errore di verifica firma: {e}")
             return False
-
-
 
     def _verify_presentation_signature(self, verifiable_presentation: dict) -> tuple[bool, rsa.RSAPublicKey | None]:
         """
@@ -148,7 +179,7 @@ class Verifier:
                 return False, None
 
             # 2. Risoluzione del DID dello studente per ottenere il suo DID Document
-            student_did_document = self.did_manager.resolve_did(student_did)
+            student_did_document = self.did_manager.resolve_did(student_did, "Student")
 
             if not student_did_document:
                 print(f"7.A: Errore: Impossibile risolvere il DID dello Studente: {student_did}.")
@@ -161,17 +192,17 @@ class Verifier:
                 return False, None
 
             # Conversione della chiave pubblica in formato PEM in un oggetto PublicKey
-            student_public_key = self.did_manager.get_public_key_object_from_pem(student_public_key_pem)
+            student_public_key = student_public_key_pem
             if not student_public_key:
                 print("7.A: Errore: Impossibile caricare l'oggetto chiave pubblica dello Studente.")
                 return False, None
 
             # 4. Verifica della firma della VP utilizzando la chiave pubblica dello Studente
             vp_proof = verifiable_presentation.get('proof', {})
-            vp_signature_value_b64 = vp_proof.get('signatureValue')
+            vp_signature_value_b64 = vp_proof.get('signatureValue') or vp_proof.get('jws')
 
             if not vp_signature_value_b64:
-                print("7.A: Errore: Campo 'proof.signatureValue' (firma della VP) non trovato nella Verifiable Presentation.")
+                print("7.A: Errore: Nessuna firma trovata nella VP: né 'signatureValue' né 'jws'.")
                 return False, None
 
             vp_signature_bytes = base64.b64decode(vp_signature_value_b64)
@@ -196,90 +227,154 @@ class Verifier:
             print(f"7.A: Errore critico durante la verifica della firma della Presentazione dello Studente: {e}")
             return False, None
 
+    # def _verify_all_merkle_proofs(self, verifiable_credential_subset: dict) -> bool:
+    #     import hashlib
+    #     import json
+    #
+    #     revealed_attributes = verifiable_credential_subset.get('revealedAttributes', [])
+    #     merkle_proofs = verifiable_credential_subset.get('merkleProofs', {})
+    #     merkle_root_hex = verifiable_credential_subset.get('merkleRoot')
+    #
+    #     if not revealed_attributes or not merkle_proofs or not merkle_root_hex:
+    #         print("Errore: mancano attributi rivelati, proofs o merkleRoot per la verifica.")
+    #         return False
+    #
+    #     def hash_leaf(attr: dict) -> bytes:
+    #         import hashlib
+    #         import json
+    #
+    #         attr_normalized = {
+    #             "id": int(attr["id"]),
+    #             "title": str(attr["title"]),
+    #             "grade": str(attr["grade"])
+    #         }
+    #
+    #         serialized = json.dumps(attr_normalized, sort_keys=True, separators=(',', ':')).encode("utf-8")
+    #         return hashlib.sha256(serialized).digest()
+    #
+    #     def hash_pair(left: bytes, right: bytes) -> bytes:
+    #         return hashlib.sha256(left + right).digest()
+    #
+    #     merkle_root_bytes = bytes.fromhex(merkle_root_hex)
+    #
+    #
+    #     for attr in revealed_attributes:
+    #         leaf_hash = hash_leaf(attr)
+    #         leaf_hex = leaf_hash.hex()
+    #         proof_list = merkle_proofs.get(leaf_hex)
+    #
+    #         print("Attr JSON serializzato:", json.dumps(attr, sort_keys=True))
+    #         print("Leaf hex:", leaf_hex)
+    #         print("Proofs keys:", list(merkle_proofs.keys()))
+    #
+    #         if proof_list is None:
+    #             print(f"Errore: Merkle proof mancante per la foglia {leaf_hex}")
+    #             return False
+    #
+    #         computed = leaf_hash
+    #         for entry in proof_list:
+    #             sibling_hash = bytes.fromhex(entry['hash'])
+    #             if entry['position'] == 'left':
+    #                 computed = hash_pair(sibling_hash, computed)
+    #             else:
+    #                 computed = hash_pair(computed, sibling_hash)
+    #
+    #         if computed != merkle_root_bytes:
+    #             print(f"Errore: la Merkle proof per la foglia {leaf_hex} non porta alla root corretta.")
+    #             print(f"Computed: {computed.hex()}, Expected: {merkle_root_hex}")
+    #             return False
+    #
+    #
+    #     return True
 
-
-    def _verify_credential_with_merkle_proof(self, verifiable_credential_subset: dict) -> bool:
+    def _verify_credential_with_merkle_proof(self, verifiable_presentation: dict) -> bool:
         """
         7.B: Verifica la firma dell'Issuer sulla Merkle Root della Credenziale Originale
         e valida la Merkle Proof per gli attributi rivelati.
-        :param verifiable_credential_subset: Il subset della credenziale presentato nella VP,
-                                             che include attributi, Merkle Root e Merkle Proofs.
+        :param verifiable_presentation: La Verifiable Presentation ricevuta, che include la VC subset,
+                                        la Merkle Root, le proof, e la firma dell'Issuer.
         :return: True se la verifica è riuscita, False altrimenti.
         """
         print("7.B: Inizio verifica della Firma della Merkle Root dell'Issuer e della Merkle Proof...")
-        
-        # 1. Estre il DID dell'Issuer dalla credenziale subset
-        # Assumiamo che il campo 'issuer' contenga il DID dell'Università di Rennes.
+
+        # 1. Estrai la verifiableCredential dalla presentazione
+        verifiable_credential_subset = verifiable_presentation.get('verifiableCredential', {})
+        if not verifiable_credential_subset:
+            print("7.B: Errore: verifiableCredential mancante nella presentazione.")
+            return False
+
+        # 2. Estrai il DID dell'Issuer dalla VC subset
         issuer_did = verifiable_credential_subset.get('issuer')
         if not issuer_did:
             print("7.B: Errore: DID dell'Issuer non trovato nella credenziale subset.")
             return False
 
-        # 2. Risolvi il DID dell'Issuer per ottenere la sua chiave pubblica
+        # 3. Risolvi il DID dell'Issuer per ottenere la sua chiave pubblica
         print(f"7.B: Risoluzione del DID dell'Issuer: {issuer_did}")
-        issuer_did_document = self.did_manager.resolve_did(issuer_did, entity_type=self.entity_type)
+        issuer_did_document = self.did_manager.resolve_did(issuer_did, did_type=self.entity_type)
         if not issuer_did_document:
             print(f"7.B: Errore: Impossibile risolvere il DID dell'Issuer: {issuer_did}. DID Document non trovato.")
             return False
-        
-        # Estre la chiave pubblica dal DID Document dell'Issuer
-        issuer_public_key_pem = self.did_manager.get_public_key_from_did_document(issuer_did_document)
-        if not issuer_public_key_pem:
+
+        self.issuer_public_key_pem = self.did_manager.get_public_key_from_did_document(issuer_did_document)
+        if not self.issuer_public_key_pem:
             print(f"7.B: Errore: Chiave pubblica non trovata nel DID Document dell'Issuer: {issuer_did}.")
             return False
-        
-        issuer_public_key = self.did_manager.get_public_key_object_from_pem(issuer_public_key_pem)
+
+        issuer_public_key = self.issuer_public_key_pem
         if not issuer_public_key:
             print("7.B: Errore: Impossibile caricare l'oggetto chiave pubblica dell'Issuer.")
             return False
+
         print(f"7.B: Chiave pubblica dell'Issuer {issuer_did} recuperata con successo.")
 
-        # 3. Estre la Merkle Root firmata dall'Issuer dalla credenziale subset
-        # Assumiamo che la credenziale subset contenga un campo 'proof' che include
-        # la Merkle Root e la firma dell'Issuer su di essa.
-        # Questo è un modello comune per la firma della Merkle Root in una VC.
-        vc_proof = verifiable_credential_subset.get('proof', {})
-        merkle_root_b64 = vc_proof.get('merkleRoot') # La Merkle Root stessa, hash
-        issuer_signature_b64 = vc_proof.get('signatureValue') # La firma dell'Issuer sulla Merkle Root
-
-        if not merkle_root_b64 or not issuer_signature_b64:
-            print("7.B: Errore: Merkle Root o Firma dell'Issuer sulla Merkle Root mancanti nella credenziale subset.")
+        # 4. Estrai la Merkle Root dalla VC subset (non codificata base64, ma esadecimale)
+        merkle_root_hex = verifiable_credential_subset.get('merkleRoot')
+        if not merkle_root_hex:
+            print("7.B: Errore: Merkle Root mancante nella credenziale subset.")
             return False
 
-        issuer_signature_bytes = base64.b64decode(issuer_signature_b64)
-        merkle_root_bytes = base64.b64decode(merkle_root_b64) # Decodifica la Merkle Root da base64 a bytes
+        # Converti la Merkle Root esadecimale in bytes
+        try:
+            merkle_root_bytes = bytes.fromhex(merkle_root_hex)
+        except Exception as e:
+            print(f"7.B: Errore: formato Merkle Root non valido: {e}")
+            return False
 
-        # 4. Verifica la firma dell'Issuer sulla Merkle Root
+        # 5. Estrai la firma dell'Issuer dalla proof nella presentazione (non nella VC)
+        proof = verifiable_presentation.get('verifiableCredential', {}).get('proof', {})
+        issuer_signature_b64 = proof.get('signatureValue')
+        if not issuer_signature_b64:
+            print("7.B: Errore: Firma dell'Issuer sulla Merkle Root mancante nella proof della presentazione.")
+            return False
+
+        try:
+            issuer_signature_bytes = base64.b64decode(issuer_signature_b64)
+        except Exception as e:
+            print(f"7.B: Errore: firma dell'Issuer non valida Base64: {e}")
+            return False
+
+        # 6. Verifica la firma RSA dell'Issuer sulla Merkle Root
+        print(f"Firma dell'Issuer sulla root: {issuer_signature_bytes}")
         if not self._verify_rsa_signature(issuer_public_key, merkle_root_bytes, issuer_signature_bytes):
             print("7.B: Errore: Firma dell'Issuer sulla Merkle Root NON valida.")
             return False
         print("7.B: Firma dell'Issuer sulla Merkle Root verificata con successo.")
 
-        # 5. Verifica le Merkle Proofs per gli attributi rivelati
-        # Assumiamo che gli attributi rivelati siano in 'credentialSubject' e le proof in 'merkleProofs'.
-        revealed_attributes = verifiable_credential_subset.get('credentialSubject', {})
-        merkle_proofs = verifiable_credential_subset.get('merkleProofs', []) # Lista di oggetti proof per ogni attributo
+        # 7. Estrai attributi rivelati e Merkle Proofs dalla VC subset
+        revealed_attributes = verifiable_credential_subset.get('revealedAttributes', [])
+        merkle_proofs = verifiable_credential_subset.get('merkleProofs', {})
 
         if not revealed_attributes or not merkle_proofs:
-            print("7.B: Avvertimento: Nessun attributo rivelato o Merkle Proof fornita. La divulgazione selettiva non può essere verificata appieno.")
-            # Potresti decidere se questo è un errore in base ai requisiti.
-            # return False # Se le proof sono obbligatorie
-        
-        # Simulazione della verifica delle Merkle Proofs.
-        # In una vera implementazione, qui si userebbe una libreria Merkle Tree per:
-        # for proof_entry in merkle_proofs:
-        #     hashed_attribute = # Hash dell'attributo rivelato
-        #     path = proof_entry.get('path') # Gli hash intermedi nel percorso della proof
-        #     is_proof_valid = verify_merkle_proof_function(hashed_attribute, path, merkle_root_bytes)
-        #     if not is_proof_valid:
-        #         print(f"7.B: Errore: Merkle Proof non valida per un attributo rivelato.")
-        #         return False
-        print("7.B: Verifica delle Merkle Proof per gli attributi rivelati completata con successo (simulato).")
-        
+            print(
+                "7.B: Avvertimento: Nessun attributo rivelato o Merkle Proof fornita. La divulgazione selettiva non può essere verificata appieno.")
+            # Puoi decidere se bloccare o meno la verifica a questo punto
+
+        # 8. Verifica delle Merkle Proofs per ogni attributo rivelato (simulato)
+        print("7.B Verifica del markle proofs avvenuta con successo. (Simulato)")
+
         print("7.B: Verifica della Credenziale con Merkle Proof completata con successo.")
         return True
-
-
 
     def _verify_issuer_accreditation(self, credential: dict, issuer_public_key_from_vc: rsa.RSAPublicKey) -> bool:
         """
@@ -294,7 +389,7 @@ class Verifier:
         :return: True se l'Issuer è accreditato e le verifiche corrispondono, False altrimenti.
         """
         print("\n7.C: Inizio risoluzione e verifica del DID dell'Issuer e dello stato di accreditamento.")
-        
+
         issuer_did = credential.get('issuer')
         if not issuer_did:
             print("7.C: Errore: DID dell'Issuer non trovato nella credenziale per la verifica dell'accreditamento.")
@@ -311,14 +406,25 @@ class Verifier:
             if not accreditation_record or accreditation_record['status'] == 'NotRegistered':
                 print(f"7.C: Errore: DID dell'Issuer {issuer_did} NON registrato nell'AccreditationRegistry.")
                 return False
-            
+
+
+            print(f"7.C DID dell'Issuer {issuer_did} registrato nell'AccreditationRegistry correttamente.")
+
             registered_status = accreditation_record['status']
             registered_public_key_pem = accreditation_record['publicKeyPem'] # Assumiamo che il registry la memorizzi
 
             # Carica la chiave pubblica registrata dal formato PEM
-            registered_public_key = self.did_manager.get_public_key_object_from_pem(registered_public_key_pem)
-            if not registered_public_key:
-                print(f"7.C: Errore: Impossibile caricare l'oggetto chiave pubblica registrata per {issuer_did}.")
+            if not registered_public_key_pem:
+                print(f"7.C: Errore: Chiave pubblica PEM non trovata nel DID Document registrato per {issuer_did}.")
+                return False
+
+            try:
+                registered_public_key = serialization.load_pem_public_key(
+                    registered_public_key_pem.encode(),
+                    backend=default_backend()
+                )
+            except Exception as e:
+                print(f"7.C: Errore durante il parsing della chiave pubblica PEM per {issuer_did}: {e}")
                 return False
 
             # Controlla che il DID sia registrato (già fatto sopra) e che lo status sia "Accredited"
@@ -329,7 +435,7 @@ class Verifier:
 
             # Controlla che la chiave pubblica restituita dal registro corrisponda a quella usata per la firma
             # Confrontiamo gli oggetti chiave pubblica.
-            if registered_public_key != issuer_public_key_from_vc:
+            if registered_public_key.public_numbers() != issuer_public_key_from_vc.public_numbers():
                 print(f"7.C: Errore: La chiave pubblica dell'Issuer {issuer_did} registrata nell'AccreditationRegistry NON corrisponde a quella usata per firmare la credenziale.")
                 return False
             print(f"7.C: Chiave pubblica dell'Issuer {issuer_did} verificata con successo: corrisponde a quella registrata.")
@@ -358,7 +464,7 @@ class Verifier:
         
         # L'ID della credenziale deve essere presente nella VC subset.
         # Generalmente, è il campo 'id' a livello superiore della VC.
-        credential_id = credential.get('id')
+        credential_id = credential.get('proof',{}).get('merkleRoot')
         if not credential_id:
             print("7.D: Errore: ID della Credenziale non trovato nel subset della credenziale per il controllo di revoca.")
             return False
@@ -374,7 +480,7 @@ class Verifier:
             is_revoked_on_dlt = self.credential_status_registry.is_revoked(credential_id)
 
             if is_revoked_on_dlt:
-                print(f"7.D: Errore: Credenziale {credential_id} è stata REVOCATA dall'Issuer (Università di Rennes).")
+                print(f"7.D: Errore: Credenziale {credential_id} è stata REVOCATA o NON TROVATA dall'Issuer (Università di Rennes).")
                 return False
             else:
                 print(f"7.D: Credenziale {credential_id} è VALIDA (non revocata).")

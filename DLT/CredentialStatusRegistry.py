@@ -75,3 +75,22 @@ class CredentialStatusRegistry:
 
     def list_credentials(self):
         return list(self.credential_statuses.keys())
+
+    def is_revoked(self, credential_id):
+        """
+        Verifica se la credenziale identificata da credential_id (es. merkleRoot) è stata revocata.
+
+        :param credential_id: L'identificativo univoco della credenziale (es. merkleRoot).
+        :return: True se revocata, False se valida o non trovata.
+        """
+        print(f"[DLT] Credenziali: {self.credential_statuses}")
+        record = self.credential_statuses.get(credential_id)
+        print(f"record sulla dlt: {record}")
+        if record is None:
+            print(f"[CredentialStatusRegistry] Nessuna credenziale trovata con ID: {credential_id}")
+            return True  # Oppure: return None se vuoi distinguere tra "non trovata" e "valida"
+
+        if record.get("status") == "Revoked":
+            return True
+        return False
+

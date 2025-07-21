@@ -25,9 +25,12 @@ class Student:
     def get_name(self):
         return self.name
 
+    def get_did(self):
+        return self.did
+
     def create_wallet(self):
         self.wallet = Wallet(student_name = self.name,
-                            student_did = self.did, 
+                            student_did = self.did,
                             student_did_document = self.did_document, 
                             student_public_key=self.public_key, 
                             student_private_key=self.private_key, 
@@ -71,24 +74,24 @@ class Student:
         per garantire autenticità e integrità.
         """
         integrity_check = self.wallet.verify_credential(credential)
-        
+
         if integrity_check:
             print('La credenziale ricevuta non è compromessa')
             return True
         else:
             print('La credenziale ricevuta è compromessa')
             return False
-            
-        
-        
-        
-        
-    def send_vp(self):
+
+
+
+
+
+    def send_vp(self, lista_id, verifier_public_key):
         if self.wallet is None:
             print(f"Lo studente {self.name} non possiede un wallet da cui creare una VP")
             return
-        self.wallet.generateDid()
-        self.wallet.send_vp_to_Verifier()
+
+        self.wallet.send_vp_to_Verifier(lista_id, self.private_key, self.public_key, verifier_public_key)
 
 
     def create_email_and_password(self):
