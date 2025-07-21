@@ -21,6 +21,7 @@ def init_actors():
     print("\n##########################################################")
     print("\n#              Inizializzazione del DLT                  #")
     print("\n##########################################################")
+    print('\n')
     dlt = DLT()
 
 
@@ -28,23 +29,25 @@ def init_actors():
     #  SMART CONTRACTS DEPLOYMENT #
     ###############################
     # Deploy the Accreditation Registry contract
-    print("\n\n\n######################################################")
-    print("\n#  Deploy del contratto AccreditationRegistry sulla DLT  #")
-    print("\n##########################################################")
+    print("\n######################################################")
+    print("\n#Deploy del contratto AccreditationRegistry sulla DLT#")
+    print("\n######################################################")
     accreditation_registry = AccreditationRegistry(dlt=dlt)
     dlt.deploy_contract(name="AccreditationRegistry", contract=accreditation_registry)
 
     # Deploy the Accreditation Registry contract
-    print("\n\n\n##########################################################")
-    print("\n#  Deploy del contratto CredentialStatusRegistry sulla DLT   #")
-    print("\n#############################################################")
+    print("\n##########################################################")
+    print("\n# Deploy del contratto CredentialStatusRegistry sulla DLT #")
+    print("\n##########################################################")
+    print('\n')
     credential_status_registry = CredentialStatusRegistry(dlt=dlt)
     dlt.deploy_contract(name = "CredentialStatusRegistry", contract = credential_status_registry)
     
     # Deploy the Student DID Registry contract
-    print("\n\n\n########################################################")
-    print("\n#  Deploy del contratto StudentDIDRegistry sulla DLT       #")
-    print("\n############################################################")
+    print("\n######################################################")
+    print("\n#  Deploy del contratto StudentDIDRegistry sulla DLT #")
+    print("\n######################################################")
+    print('\n')
     student_did_registry = StudentDIDRegistry(dlt=dlt)
     dlt.deploy_contract(name="StudentDIDRegistry", contract=student_did_registry)
     
@@ -55,14 +58,15 @@ def init_actors():
     did_manager = DIDManager(accreditation_registry=accreditation_registry, credential_status_registry=credential_status_registry, student_did_registry=student_did_registry)
 
 
-
     ###############################
     #      INIT SYSTEM ACTORS     #
     ###############################
+    
     # Initialize the AE (Accreditation Entity)
-    print("\n\n\n##########################################################")
-    print("\n#  Inizializzazione dell\'Accreditation Entity (AE)      #")
-    print("\n##########################################################")
+    print("\n#######################################################")
+    print("\n #  Inizializzazione dell\'Accreditation Entity (AE)      #")
+    print("\n#########################################################")
+    print('\n')
     ae = AE('Ente di Accreditamento', accreditation_registry, did_manager)
 
 
@@ -72,42 +76,42 @@ def init_actors():
     # init Issuer
     print("\n##########################################################")
     print("\n#  Inizializzazione dell\'Issuer (Università di Rennes)  #")
-    print("\n##########################################################")
+    print("\n##########################################################\n")
+    print('\n')
     # Logica che accredita l'issuer
     issuer = Issuer("Università di Rennes", dlt, ae, credential_status_registry, did_manager)
     if issuer.accredit_request():
-        print("\n##########################################################")
-        print("\n#          Issuer accreditato con successo               #")
-        print("\n##########################################################")
+        print("\n----------------------------------------------------------")
+        print("\n-          Issuer accreditato con successo               -")
+        print("\n----------------------------------------------------------")
         print('\n')
     else:
-        print("\n##########################################################")
-        print("\n#          Issuer non accreditato                         #")
-        print("\n##########################################################")
+        print("\n----------------------------------------------------------")
+        print("\n-          Issuer non accreditato                        -")
+        print("\n----------------------------------------------------------")
         print('\n')
 
     # init verifier
     print("\n##########################################################")
-    print("\n# Inizializzazione dell\'Verifier (Università di Salerno)#")
-    print("\n##########################################################")
+    print("\n# Inizializzazione dell\'Verifier (Università di Salerno) #")
+    print("\n##########################################################\n")
     verifier = Verifier("Università di Salerno", ae, did_manager=did_manager)
     # Logica che accredita il Verifier
     if verifier.accredit_request():
-        print("\n##########################################################")
-        print("\n#          Verifier accreditato con successo             #")
-        print("\n##########################################################")
+        print("\n---------------------------------------------------------")
+        print("\n-          Verifier accreditato con successo            -")
+        print("\n---------------------------------------------------------")
         print('\n')
     else:
-        print("\n##########################################################")
-        print("\n#          Verifier non accreditato                      #")
-        print("\n##########################################################")
+        print("\n---------------------------------------------------------")
+        print("\n-          Verifier non accreditato                       -")   
+        print("\n---------------------------------------------------------")
         print('\n')
 
 
     print("\n##########################################################")
     print("\n#          Creazione dello studente                      #")
     print("\n##########################################################")
-    print('\n')
 
     student = Student(name ="Clitian Rosa", 
                         did_manager=did_manager, 
@@ -122,10 +126,7 @@ def init_actors():
     print("\n########################################################")
     print(f"\n#        Creazione delle credenziali                  #")
     print("\n########################################################")
-    print('\n')
     student.create_email_and_password()
-
-    # accreditation_registry.debug_print()
     
     # Return the initialized actors
     return {

@@ -9,7 +9,7 @@ class DLT:
 
     def deploy_contract(self, name, contract):
         self.smart_contracts[name] = contract
-        print(f"[DLT] Smart contract '{name}' deployato.")
+        # print(f"[DLT] Smart contract '{name}' deployato.")
 
     def get_contract(self, name):
         return self.smart_contracts.get(name, None)

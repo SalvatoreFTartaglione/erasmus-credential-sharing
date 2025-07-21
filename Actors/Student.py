@@ -118,7 +118,7 @@ class Student:
 
 
     def send_public_key_to_issuer(self):
-        print(f"Public key before encrypt: {self.public_key}")
+        # print(f"Public key before encrypt: {self.public_key}")
         public_key_obj = TLS.load_public_key_from_pem(self.public_key)
         self.wallet.pubk_to_issuer(self.did, public_key_obj, self.public_key)
         

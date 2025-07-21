@@ -130,7 +130,7 @@ class DIDManager:
         Estrae e carica la chiave pubblica da un DID Document.
         key_id può essere usato per selezionare una specifica chiave se ce ne sono più.
         """
-        print(f"  DIDManager: Estraendo chiave pubblica dal DID Document.")
+        print(f"DIDManager: Estraendo chiave pubblica dal DID Document.")
         if 'verificationMethod' not in did_document:
             raise ValueError("DID Document non contiene 'verificationMethod'.")
         
@@ -145,10 +145,10 @@ class DIDManager:
                             pem_bytes,
                             backend=default_backend()
                         )
-                        print(f"  DIDManager: Chiave pubblica '{method.get('id', 'N/A')}' caricata con successo.")
+                        print(f"DIDManager: Chiave pubblica '{method.get('id', 'N/A')}' caricata con successo.")
                         return public_key
                     except Exception as e:
-                        print(f"  DIDManager: ERRORE caricamento chiave pubblica dal PEM: {e}")
+                        print(f"DIDManager: ERRORE caricamento chiave pubblica dal PEM: {e}")
                         raise
         raise ValueError(f"Chiave pubblica con ID '{key_id}' non trovata nel DID Document o formato non supportato.")
 

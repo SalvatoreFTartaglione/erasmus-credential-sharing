@@ -11,18 +11,6 @@ class AccreditationRegistry:
         self.accrediting_authority_did = accrediting_authority_did
 
 
-    def debug_print(self):
-        print("=== Debug: Entità accreditate ===")
-        for key, json_doc in self.accredited_entities.items():
-            print(f"\n🔑 Chiave: {key}")
-            try:
-                # Stampa il JSON in modo leggibile con indentazione
-                formatted_json = json.dumps(json_doc, indent=4, ensure_ascii=False)
-                print(formatted_json)
-            except Exception as e:
-                print(f"❌ Errore nella formattazione del documento JSON: {e}")
-
-
     def accredit_entity(self, caller_did, target_did_document, entity_type):
         # Controllo se il chiamante è l'ente di accreditamento
         if caller_did != self.accrediting_authority_did:
@@ -60,9 +48,8 @@ class AccreditationRegistry:
         # add data onto the DLT
         self.dlt.add_block(block_data)
         
-        
         # print(f"[DLT] Accredito registrato on-chain per DID: {did_str}")
-        print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
+        # print(f"[AccreditationRegistry] {entity_type} accreditato con DID: {did_str}")
         return True
     
     

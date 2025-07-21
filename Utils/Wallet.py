@@ -60,7 +60,7 @@ class Wallet:
         if self.credential is not None:
             print("[WALLET] Credenziale ricevuta con successo dall'Issuer e salvata nel wallet.")
             # stampare la credenziale per verifica
-            print(json.dumps(self.credential, indent=2))
+            # print(json.dumps(self.credential, indent=2))
             return True, self.credential
         else:
             print("[WALLET] ERRORE: La richiesta non è andata a buon fine. Nessuna credenziale ricevuta.")
@@ -83,8 +83,8 @@ class Wallet:
 
         message = f"{did}||{public_key_pem}"
         iv, ciphertext = TLS.encrypt_message_aes(aes_key, message.encode())
-        print(f"Message before encrypt: {message}")
-        print(f"Message after encrypt: {ciphertext}")
+        # print(f"Message before encrypt: {message}")
+        # print(f"Message after encrypt: {ciphertext}")
         self.issuer.add_public_key_of_student(encrypted_key, iv, ciphertext)
 
 
@@ -124,7 +124,7 @@ class Wallet:
         
         # 4. Interrogare lo smart contract AccreditationRegistry sulla DLT
         # Questo è un controllo aggiuntivo per assicurarsi che l'Issuer sia registrato come "Accredited" sulla DLT.
-        print(f"   Wallet: Interrogazione AccreditationRegistry sulla DLT per lo stato di {issuer_did}...")
+        print(f"Wallet: Interrogazione AccreditationRegistry sulla DLT per lo stato di {issuer_did}...")
         accreditation_status = self.accreditation_registry.get_accreditation_status(issuer_did)
 
         if not accreditation_status: 
@@ -145,12 +145,12 @@ class Wallet:
         :param ca_certificate: Il certificato della CA (dell'Accreditation Authority).
         :return: True se il certificato è valido e firmato dalla CA, False altrimenti.
         """
-        print("   Wallet: X.509: Eseguo verifica del certificato...")
+        print("Wallet: X.509: Eseguo verifica del certificato...")
         try:
             # 1. Verifica la validità temporale del certificato
             now = datetime.datetime.now(datetime.timezone.utc)
             if now < certificate_to_verify.not_valid_before_utc or now > certificate_to_verify.not_valid_after_utc:
-                print("   Wallet: X.509: Certificato non valido temporalmente (data corrente fuori range).")
+                print("Wallet: X.509: Certificato non valido temporalmente (data corrente fuori range).")
                 return False
             
             # 2. Verifica che il certificato sia firmato dal certificato della CA dell'AE
@@ -214,7 +214,7 @@ class Wallet:
             hasher.update(leaf_data_str.encode('utf-8'))
             recalculated_merkle_leaves.append(hasher.finalize())
         
-        print(f"{self.student_name}: Foglie Merkle ricalcolate per {len(recalculated_merkle_leaves)} attributi.")
+        # print(f"{self.student_name}: Foglie Merkle ricalcolate per {len(recalculated_merkle_leaves)} attributi.")
 
         # 4. Ricalcola la Merkle Root
         try:
@@ -242,7 +242,6 @@ class Wallet:
             issuer_did = credential['issuer']['id']
             # Risolvi il DID dell'Issuer per ottenere il DID Document
             issuer_did_document = self.did_manager.resolve_did(issuer_did, 'Issuer')
-            print("\n\n\n\n\n\n");print(issuer_did_document);print('\n\n\n\n\n')
             # Estrai l'ID della chiave di verifica dalla proof
             verification_method_id = credential['proof']['verificationMethod']
             

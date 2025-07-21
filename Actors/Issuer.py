@@ -59,7 +59,7 @@ class Issuer:
         Qui l'Issuer verifica l'identità dello studente e poi chiama il suo stesso
         metodo issue_credential per emettere effettivamente la VC.
         """
-        print(f"\nIssuer {self.name}: Ricevuta richiesta credenziale da {subject_did}.")
+        print(f"Issuer {self.name}: Ricevuta richiesta credenziale da {subject_did}.")
         # l'Issuer accetta la richiesta e procede con l'emissione (senza verificare l'identità dello 
         # studente per semplicità)
         
@@ -79,7 +79,7 @@ class Issuer:
         """
         Genera una credenziale con i campi specificati dal file APS_credential.json.
         """
-        print(f"\nIssuer {self.name}: Inizio emissione Credenziale per lo Studente {subject_name} ({subject_did}).")
+        print(f"Issuer {self.name}: Inizio emissione Credenziale per lo Studente {subject_name} ({subject_did}).")
         
         issuance_date_obj = datetime.datetime.now(datetime.timezone.utc)
         expiration_date_obj = issuance_date_obj + datetime.timedelta(days=3 * 365) # Approx 3 years
@@ -369,8 +369,8 @@ class Issuer:
     def add_public_key_of_student(self, encrypted_key, iv, ciphertext):
         aes_key = TLS.server_receive_tls_key(encrypted_key, TLS.load_private_key_from_pem(self.private_key))
         plaintext = TLS.decrypt_message_aes(aes_key, iv, ciphertext)
-        print(f"Message encrypted: {ciphertext}")
-        print(f"Message decrypted: {plaintext}")
+        # print(f"Message encrypted: {ciphertext}")
+        # print(f"Message decrypted: {plaintext}")
         # Estrai DID e chiave pubblica
         did, pubk_pem = plaintext.decode().split("||")
 
