@@ -1,16 +1,19 @@
+import base64
+import datetime
+import hashlib
+import json
+import os
+import time
 import uuid
-from Utils.TLS import TLS
+
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-import datetime
-import json
-import base64
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
-import hashlib
-import time
-import os
+
+from Tests.tests import MyTestCase
+from Utils.TLS import TLS
 
 
 class Wallet:
@@ -557,6 +560,32 @@ class Wallet:
         filename = os.path.join("VPs", f"vp_{student_did.split(':')[-1]}.json")
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(vp, f, indent=4, ensure_ascii=False)
+
+        t = MyTestCase()
+        vp_size = t.print_vp_dim(vp)
+        vc_size = t.print_vc_dim(credential)
+
+
+        os.makedirs("Performance_Results", exist_ok=True)
+        existing_files = os.listdir("Performance_Results")
+        ids = [int(f.split('_')[1].split('.')[0]) for f in existing_files if
+               f.startswith("performance_") and f.endswith(".txt")]
+        next_id = max(ids) + 1 if ids else 1
+
+        # Crea filename con ID progressivo
+        filename = os.path.join("Performance_Results", f"performance_{next_id}.txt")
+
+        # Prepara contenuto
+        output = {
+            "VC_size_bytes": vc_size,
+            "VP_size_bytes": vp_size
+        }
+
+        # Salva su file
+        with open(filename, "w", encoding="utf-8") as z:
+            z.write(f"Performance con {len(lista_id)} esami selezionati per la VP\n")
+            z.write(f"VC size (bytes): {vc_size}\n")
+            z.write(f"VP size (bytes): {vp_size}\n")
 
         return vp
 

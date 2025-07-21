@@ -1,0 +1,74 @@
+{
+    "@context": [
+        "https://www.w3.org/2018/credentials/v1"
+    ],
+    "type": [
+        "VerifiablePresentation"
+    ],
+    "verifiableCredential": {
+        "revealedAttributes": [
+            {
+                "id": 1,
+                "title": "Data Science",
+                "grade": "27/30"
+            },
+            {
+                "id": 2,
+                "title": "Automation",
+                "grade": "30/30"
+            }
+        ],
+        "merkleRoot": "f92a94bb258f2717c9cc2fc6c597c332e340631d5f90d4d5b22119c0b2c096bc",
+        "merkleProofs": {
+            "d2bf297ee83862c542da633078f5412f0953598f589e600dd8769059deaf2732": [
+                {
+                    "position": "right",
+                    "hash": "063a335f3e80701d49fdd52b9bf78dab226aec1263bdb5689024a2834cd4f035"
+                },
+                {
+                    "position": "right",
+                    "hash": "c996bd02f2ac6bfbf3db5bfa7c1353cbdaea1e584407d26008d6e99fbe33fa72"
+                },
+                {
+                    "position": "right",
+                    "hash": "d44788ea293a0c306ce22856a27c9545106a24f85c4292c98e550fd11db7d731"
+                }
+            ],
+            "063a335f3e80701d49fdd52b9bf78dab226aec1263bdb5689024a2834cd4f035": [
+                {
+                    "position": "left",
+                    "hash": "d2bf297ee83862c542da633078f5412f0953598f589e600dd8769059deaf2732"
+                },
+                {
+                    "position": "right",
+                    "hash": "c996bd02f2ac6bfbf3db5bfa7c1353cbdaea1e584407d26008d6e99fbe33fa72"
+                },
+                {
+                    "position": "right",
+                    "hash": "d44788ea293a0c306ce22856a27c9545106a24f85c4292c98e550fd11db7d731"
+                }
+            ]
+        },
+        "issuer": "did:universitàdirennes:ecbcebc9b94b4ae4aac4b417d2762d82",
+        "proof": {
+            "type": "RsaSignature2018",
+            "created": "2025-07-21T18:10:14.836572+00:00Z",
+            "proofPurpose": "assertionMethod#keys-1",
+            "verificationMethod": "did:universitàdirennes:ecbcebc9b94b4ae4aac4b417d2762d82#keys-1",
+            "merkleRoot": "+SqUuyWPJxfJzC/GxZfDMuNAYx1fkNTVsiEZwLLAlrw=",
+            "signatureValue": "Sbv/2Pi+rptoK0o0jhDj1obi2P9/1QjZk99q+aS/AW9DKvNNu4keH0qPYHEXtrZXXXPDKwPB1UdW0gDA+yGFNptR4lbQcjlZLPFus6gxtXqUkkdAK+Y9WYVvABiCHMOqqM/Xv7BiBmHh4dH5pxCuyC/TcQXdYN02TJdNMlSbDkHe5Zvie/Jn2mw+2W5D7u/VmfzAgSqMwABQGB086AgkGGKqAA8MIogv9kipBztKmSyvpNlZUzJs8XxCvavddiXFe92Azwo7lqJsPez2au21BezfssNxbs8s3AlsKHRVvKlmqdvB2s900aAn/LYW7JfBhI4ZbBE/vsqS3Onsm+OlQQ==",
+            "proofValue": "simulated_proof_value",
+            "jws": "simulated_jws"
+        },
+        "id": "urn:uuid:3e100013a76cd12b100533fdcb3a255c"
+    },
+    "holder": "did:clitianrosa:adcfb6f5a8e4462ea4b39c4d73474245",
+    "issuanceDate": "2025-07-21T18:11:28Z",
+    "proof": {
+        "type": "RSASignature2024",
+        "created": "2025-07-21T18:11:28Z",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "did:clitianrosa:adcfb6f5a8e4462ea4b39c4d73474245#keys-1",
+        "signatureValue": "DAvfPdcFT/9UHv9yQ/VD36QYR0pY2nBdxzajDZf5TRYHXpNbutqKYOwYqIfHTmok72R/JAlCevMjiBYAH50ehAJLHot48zg0DRrovPMmJA040aRsINA9cIybYHx5rJvyRzlCPszIADgRGFX/qgPF1/ykGueK35yhJ5Mwctqz3UklaVm2GiwbKAZ12zMfiwxYXDuX8YzlwMAmKSDJIiexUOqML9VNWY9TEpkcDQEceU3gu9wg0WVxxOb3qE4lLEWmbQQwYKi8hktuBAtLhtYvDDBt1hrnYm0LvPJzLt4PYx/ubxUS4wwNmnPPjSHiUyWUQwRX9cAvouuU1OTvuWUG8A=="
+    }
+}

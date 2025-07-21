@@ -9,6 +9,8 @@ from Actors.AE import AE
 from Actors.Student import Student
 import time
 import random
+import os
+import json
 
 def init_actors():
     """
@@ -168,18 +170,7 @@ def checkInput(lista_utente, lista_esami):
     return True, user_ids
 
 
-def menu_principale(student, verifier, issuer):
-    # credential = student.request_credential()
-    # print(credential)
-    # integrity_check = student.verify_requested_credential(credential)
-    # if integrity_check:
-    #     print('GESU CRISTO POSSIAMO ANDARE AVANTI ')
-    #     student.get_wallet().set_credential(credential)
-    # if credential is None:
-    #     print("Nessuna credenziale trovata.")
-    #     return []
-    # lista_id = [1,2]
-    # student.send_vp(lista_id, verifier.get_public_key())
+def menu_principale(student, verifier):
     while True:
         print(f"\nBenvenuto nel tuo wallet {student.get_name()}.")
         print("[1] Per ottenere la credenziale")
@@ -219,7 +210,7 @@ def menu_principale(student, verifier, issuer):
                 print("Errore nella richiesta della credenziale.")
 
         else:
-            menu_presentazione(student, verifier, issuer)
+            menu_presentazione(student, verifier)
 
 def extract_exam_id(credential):
     """
@@ -258,7 +249,7 @@ def extract_exam_id(credential):
 
 
 
-def menu_presentazione(student, verifier, issuer):
+def menu_presentazione(student, verifier):
     print("MENU PRESENTAZIONE")
     credential = student.get_wallet().get_credential()
     if credential is None:
@@ -286,8 +277,30 @@ def menu_presentazione(student, verifier, issuer):
                 return
             verified, lista_id = checkInput(user_input, lista_esami)
 
-        # Se verified è True
+        start = time.time()
         student.send_vp(lista_id, verifier.get_public_key())
+        end = time.time()
+
+        latenza = (end - start) * 1000
+
+        print(f"latenza = {latenza} ms")
+
+        # Trova l’ultimo file creato
+        directory = "Performance_Results"
+        files = [f for f in os.listdir(directory) if f.startswith("performance_") and f.endswith(".txt")]
+        files.sort(key=lambda x: int(x.split('_')[1].split('.')[0]))  # Ordina per ID numerico
+
+        if not files:
+            print("Nessun file di performance trovato.")
+        else:
+            latest_file = files[-1]  # Ultimo file creato
+            path = os.path.join(directory, latest_file)
+
+            # Aggiungi la latenza in fondo al file (modalità append)
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(f"Verification latency (ms): {round(latenza, 2)}\n")
+
+            print(f"Le performance per questa run sono al file: {latest_file}")
         break
 
 
@@ -346,7 +359,7 @@ def run_simulation(actors):
         exit(1)
 
     student.send_public_key_to_issuer()
-    menu_principale(student, verifier, issuer)
+    menu_principale(student, verifier)
 
 
 
