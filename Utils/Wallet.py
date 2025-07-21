@@ -11,7 +11,7 @@ import base64
 
 
 class Wallet:
-    def __init__(self, student_name, student_did, student_did_document, student_public_key, student_private_key, issuer, verifier, ae, accreditation_registry, did_manager):
+    def __init__(self, student_name, student_did, student_did_document, student_public_key, student_private_key, issuer, verifier, ae, accreditation_registry, did_manager, credential_status_registry):
         self.entity_name = "Wallet_" + str(uuid.uuid4())
         self.credential = None
         self.student_did = student_did
@@ -24,6 +24,7 @@ class Wallet:
         self.ae = ae
         self.accreditation_registry = accreditation_registry
         self.did_manager = did_manager
+        self.credential_status_registry = credential_status_registry
         
 
     def get_student_did(self):
@@ -103,7 +104,7 @@ class Wallet:
         # Questo DID Document dovrebbe contenere il certificato X.509 dell'Issuer.
         issuer_did_document = self.did_manager.resolve_did(issuer_did, 'Issuer')
         if not issuer_did_document:
-            print(f"   Wallet: Errore: Impossibile risolvere il DID dell'Issuer: {issuer_did}. Richiesta abortita.")
+            print(f"Wallet: Errore: Impossibile risolvere il DID dell'Issuer: {issuer_did}. Richiesta abortita.")
             return False
 
         # 2. Recuperare il Certificato X.509 dell'Issuer dal suo DID Document
@@ -233,10 +234,8 @@ class Wallet:
             return False
         
         print(f"{self.student_name}: VERIFICA SUPERATA: La Merkle Root ricalcolata CORRISPONDE a quella nella credenziale. Integrità della credenziale OK.")
-
-        # --- Ulteriori Passaggi di Verifica (Cruciali per una verifica completa) ---
         
-        # --- Punto 6: Verifica la firma dell'Issuer (Autenticità) ---
+        # 6. Verifica la firma dell'Issuer (Autenticità) ---
         print(f"\n{self.student_name}: Eseguo verifica della firma dell'Issuer.")
         try:
             issuer_did = credential['issuer']['id']
@@ -255,18 +254,28 @@ class Wallet:
             # Verifica la firma usando la chiave pubblica dell'Issuer sulla Merkle Root
             if not self._verify_signature(issuer_public_key, merkle_root_from_credential_bytes, signature_bytes):
                 print(f"{self.student_name}: VERIFICA FALLITA: La firma dell'Issuer NON è valida. Autenticità compromessa!")
-                return False
-            
+                return False  
             print(f"{self.student_name}: VERIFICA SUPERATA: Firma dell'Issuer validata. Autenticità OK.")
-            return True
-
+            
+            print(credential)
+            
+        
         except Exception as e:
             print(f"{self.student_name}: ERRORE: Fallimento durante la verifica della firma dell'Issuer: {e}")
             return False
         
+        # --- Punto 7: Verifica della validità della credenziale --- #
+        print(f"\n{self.student_name}: Eseguo verifica della validità della credenziale.")
+        if not self._verify_credential_status(credential):
+            print(f"{self.student_name}: VERIFICA FALLITA: La credenziale rilasciata dall'issuer NON è valida")
+            return False
+        print(f"{self.student_name}: VERIFICA SUPERATA: FLa credenziale rilasciata dall'issuer è valida.")
+        
+        return True
         
         
-    # --- Funzione per la Verifica della Firma (utilizzata nel punto 7) ---
+        
+        
     def _verify_signature(self, public_key, signed_data: bytes, signature_bytes: bytes) -> bool:
         """
         Verifica una firma RSA-PSS.
@@ -332,3 +341,22 @@ class Wallet:
             return str(data)
         else:
             return json.dumps(data) # Per stringhe, per gestire correttamente i caratteri speciali
+
+
+    def _verify_credential_status(self, credential: dict) -> bool:
+        """
+        Recupera lo stato di una credenziale dal CredentialStatusRegistry
+        e controlla che il suo status sia 'Valid'.
+        :param credential: Il dizionario completo della Verifiable Credential.
+        :return: True se lo stato della credenziale è 'Valid', False altrimenti.
+        """
+        # La Merkle Root è l'identificatore della credenziale registrato nel CredentialStatusRegistry.
+        credential_hash = credential.get('merkleRoot')
+
+        if not credential_hash:
+            print("[Verifica Stato Credenziale] ERRORE: Merkle Root non trovata nella credenziale. Impossibile verificare lo stato.")
+            return False
+
+        is_valid = self.credential_status_registry.is_credential_valid(credential_hash)
+            
+        return is_valid

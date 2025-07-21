@@ -7,17 +7,6 @@ class CredentialStatusRegistry:
         self.credential_statuses = {}
         self.dlt = dlt
         
-        
-    def debug_print(self):
-        print("=== Debug: Entità accreditate ===")
-        for key, json_doc in self.credential_statuses.items():
-            print(f"\n🔑 Chiave: {key}")
-            try:
-                # Stampa il JSON in modo leggibile con indentazione
-                formatted_json = json.dumps(json_doc, indent=4, ensure_ascii=False)
-                print(formatted_json)
-            except Exception as e:
-                print(f"❌ Errore nella formattazione del documento JSON: {e}")
 
 
     def register_credential(self, credential_hash, issuer_did):
@@ -29,6 +18,7 @@ class CredentialStatusRegistry:
             print(f"[CredentialStatusRegistry] Credenziale già registrata: {credential_hash}")
             return False
 
+        # la key = credential_hash è la merkle root
         self.credential_statuses[credential_hash] = {
             "status": "Valid",
             "issuer": issuer_did,

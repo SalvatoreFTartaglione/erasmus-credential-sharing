@@ -4,7 +4,7 @@ import os
 import random
 
 class Student:
-    def __init__(self, name, did_manager, student_did_registry, issuer, verifier, ae, accreditation_registry):
+    def __init__(self, name, did_manager, student_did_registry, issuer, verifier, ae, accreditation_registry, credential_status_registry):
         self.name = name
         self.entity_type = "Student"
         self.did_manager = did_manager
@@ -20,6 +20,7 @@ class Student:
         self.password = None
         self.ae = ae
         self.accreditation_registry = accreditation_registry
+        self.credential_status_registry = credential_status_registry
 
     def get_name(self):
         return self.name
@@ -34,7 +35,8 @@ class Student:
                             verifier=self.verifier,
                             ae=self.ae,
                             did_manager=self.did_manager,
-                            accreditation_registry=self.ae.accreditation_registry
+                            accreditation_registry=self.ae.accreditation_registry,
+                            credential_status_registry=self.credential_status_registry
                             )
 
     def get_wallet(self):

@@ -119,7 +119,8 @@ def init_actors():
                         issuer=issuer, 
                         verifier=verifier,
                         ae=ae,
-                        accreditation_registry=accreditation_registry
+                        accreditation_registry=accreditation_registry,
+                        credential_status_registry=credential_status_registry
                         )
     print(f"\nStudente {student.get_name()} creato con successo")
 
@@ -201,7 +202,7 @@ def menu_principale(student):
                     # IMPLEMENTARE CODICE PER GENERARE LA VP E MANDARLA AL VERIFIER
                     pass
                 else:
-                    pass
+                    print('La verifica della credenziale ha avuto ESITO NEGATIVO')
                     
             elif credential is None:
                 print("Errore nella richiesta della credenziale.")
