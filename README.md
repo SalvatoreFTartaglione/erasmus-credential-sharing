@@ -1,5 +1,6 @@
 # Selective Sharing of Academic Credentials
 
+[![CI](https://github.com/SalvatoreFTartaglione/erasmus-credential-sharing/actions/workflows/ci.yml/badge.svg)](https://github.com/SalvatoreFTartaglione/erasmus-credential-sharing/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![Tested attacks](https://img.shields.io/badge/threat%20model-attacks%20tested-informational)
 
