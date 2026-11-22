@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# IDEs
+.idea/
+.vscode/
+
+# Runtime output of the simulation (regenerated on every run)
+output/
+
+# Local, non-public material (original course brief, unredacted report)
+private/
