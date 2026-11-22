@@ -20,3 +20,6 @@ output/
 
 # Local, non-public material (original course brief, unredacted report)
 private/
+
+# Documents
+docs/

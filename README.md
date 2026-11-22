@@ -9,7 +9,7 @@ A decentralised, privacy-preserving system that lets an **Erasmus student** prov
 The project implements, end to end, a protocol built on **W3C Verifiable Credentials and DIDs**, **salted Merkle-tree selective disclosure**, an **X.509 accreditation PKI** and smart contracts on a **simulated permissioned ledger**. It comes with a threat model, a test-suite that reproduces each attack from the model, and benchmarks.
 
 > Project work for *Algoritmi e Protocolli per la Sicurezza* (MSc Computer Engineering, University of Salerno, A.Y. 2024/25).
-> The full design document (threat model, security properties, protocol, security analysis) is in [`docs/project-report-it.pdf`](docs/project-report-it.pdf) (Italian).
+> The protocol follows a full design document (Italian) covering the threat model, security properties, protocol and security analysis; it is available on request.
 
 ---
 
@@ -189,7 +189,7 @@ A presentation costs about 2.2 KB of fixed overhead: two RSA-2048 signatures, th
 
 The first version of this repository was submitted as course work. Before publishing it, I reviewed it and wrote proof-of-concept exploits against it. They showed that a student could **raise their own grades**, **present somebody else's credential** and **replay presentations**, and that the verifier still accepted the result. Among other causes, Merkle proofs were never checked, holder binding was missing, the challenge-response always returned `True`, the leaves were unsalted, and the contracts had no access control.
 
-[`docs/SECURITY_REVIEW.md`](docs/SECURITY_REVIEW.md) lists every finding, its impact and how version 2 fixes it. Every exploit is now a regression test.
+Every finding was fixed in version 2, and every exploit is now a regression test (see `tests/test_presentation_attacks.py` and `tests/test_ledger_and_contracts.py`).
 
 ## Limitations and future work
 
@@ -214,7 +214,6 @@ credential_sharing/
 └── cli.py             # interactive wallet and --demo
 tests/                 # 84 tests: primitives, contracts, issuance, attacks, CLI
 benchmarks/            # size/latency benchmark + results
-docs/                  # project report (IT) and security review
 ```
 
 ## Authors
